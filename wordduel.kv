@@ -1,0 +1,859 @@
+#:import get_color_from_hex kivy.utils.get_color_from_hex
+
+<MenuScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 12
+        Label:
+            text: "The Word Game"
+            font_size: 42
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.18
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            text: "\u05dd\u05d9\u05dc\u05d9\u05de\u05d4 \u05e7\u05d7\u05e9\u05de"
+            font_size: 38
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#F3E8FF")
+            size_hint_y: 0.14
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            text: "Choose your language"
+            font_size: 16
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.07
+        Button:
+            text: "Play in English"
+            font_size: 34
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.13
+            background_color: get_color_from_hex("#F9A825")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press:
+                root.manager.get_screen("mode_screen").set_language("en")
+                root.manager.current = "mode_screen"
+        Button:
+            text: "\u05ea\u05d9\u05e8\u05d1\u05e2\u05d1 \u05e7\u05d7\u05e9"
+            font_size: 34
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.13
+            background_color: get_color_from_hex("#558B2F")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press:
+                root.manager.get_screen("mode_screen").set_language("he")
+                root.manager.current = "mode_screen"
+        Label:
+            size_hint_y: 0.35
+
+<ModeScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 16
+        Label:
+            id: title_label
+            text: "The Word Game"
+            font_size: 42
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.2
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: subtitle_label
+            text: "Choose your mode"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.08
+        Button:
+            id: single_btn
+            text: "Single Player"
+            font_size: 34
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.1
+            background_color: get_color_from_hex("#1B5E20")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.choose_mode("single")
+        Button:
+            id: multi_btn
+            text: "Pass & Play"
+            font_size: 34
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.1
+            background_color: get_color_from_hex("#558B2F")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.choose_mode("multi")
+        Button:
+            id: online_btn
+            text: "Play Online"
+            font_size: 34
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.1
+            background_color: get_color_from_hex("#F57F17")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.go_online()
+        Button:
+            id: rules_btn
+            text: "Rules"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.09
+            background_color: get_color_from_hex("#1B5E20")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.go_rules()
+        Button:
+            id: back_btn
+            text: "Back"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.09
+            background_color: get_color_from_hex("#8D6E63")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.manager.current = "menu"
+        Label:
+            size_hint_y: 0.14
+
+<WordSetterScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 12
+        Label:
+            id: title_label
+            text: "Player 1"
+            font_size: 36
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.1
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: subtitle_label
+            text: "Type your secret word"
+            font_size: 16
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.07
+        Label:
+            id: hidden_display
+            text: "_ _ _ _ _"
+            font_size: 36
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.1
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: error_label
+            text: ""
+            font_size: 14
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFD700")
+            size_hint_y: 0.06
+        Button:
+            id: back_btn
+            text: "Back"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.07
+            background_color: get_color_from_hex("#8D6E63")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.manager.current = "mode_screen"
+        BoxLayout:
+            id: setter_keyboard
+            orientation: "vertical"
+            size_hint_y: 0.6
+            spacing: 6
+
+<PassPhoneScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 24
+        Label:
+            id: title_label
+            text: "Pass the phone!"
+            font_size: 38
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.25
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: instruction_label
+            text: "Hand the phone to Player 2."
+            font_size: 17
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            halign: "center"
+            size_hint_y: 0.2
+        Button:
+            id: ready_btn
+            text: "Player 2 is ready!"
+            font_size: 34
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.15
+            background_color: get_color_from_hex("#6AAF69")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.proceed_to_game()
+        Button:
+            id: back_btn
+            text: "Back"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.1
+            background_color: get_color_from_hex("#8D6E63")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.manager.current = "word_setter"
+        Label:
+            size_hint_y: 0.3
+
+<GameScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: [10, 10]
+        spacing: 6
+        BoxLayout:
+            size_hint_y: 0.07
+            spacing: 8
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.3
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+            Label:
+                id: title_label
+                text: "The Word Game"
+                font_size: 20
+                bold: True
+                font_name: "NotoHebrewBold"
+                color: get_color_from_hex("#FFFFFF")
+            Label:
+                id: message_label
+                text: ""
+                font_size: 14
+                font_name: "NotoHebrewBold"
+                color: get_color_from_hex("#FFD700")
+            Button:
+                id: menu_btn
+                text: "Menu"
+                font_size: 14
+                font_name: "NotoHebrewBold"
+                size_hint_x: 0.2
+                background_color: get_color_from_hex("#8D6E63")
+                background_normal: ""
+                color: [1, 1, 1, 1]
+                on_press: root.manager.current = "menu"
+        ScrollView:
+            size_hint_y: 0.55
+            do_scroll_x: False
+            do_scroll_y: True
+            GridLayout:
+                id: tile_grid
+                cols: 5
+                rows: 6
+                spacing: 6
+                size_hint_y: None
+                row_default_height: 56
+                height: self.minimum_height
+                padding: [20, 4]
+        BoxLayout:
+            id: keyboard_area
+            orientation: "vertical"
+            size_hint_y: 0.31
+            spacing: 6
+
+<OnlineMenuScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 16
+        Label:
+            id: title_label
+            text: "Online Play"
+            font_size: 42
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.2
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: subtitle_label
+            text: "Play with a friend online!"
+            font_size: 16
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.08
+        Button:
+            id: create_btn
+            text: "Create Game"
+            font_size: 34
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.13
+            background_color: get_color_from_hex("#1B5E20")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.choose_online_mode("create")
+        Button:
+            id: join_btn
+            text: "Join Game"
+            font_size: 34
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.13
+            background_color: get_color_from_hex("#558B2F")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.choose_online_mode("join")
+        Button:
+            id: back_btn
+            text: "Back"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.1
+            background_color: get_color_from_hex("#8D6E63")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.manager.current = "mode_screen"
+        Label:
+            size_hint_y: 0.36
+
+<OnlineSetterScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 12
+        Label:
+            id: title_label
+            text: "Your Game Code"
+            font_size: 28
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.1
+        Label:
+            id: code_label
+            text: "----"
+            font_size: 56
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFD700")
+            size_hint_y: 0.16
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: share_label
+            text: "Share this code with your friend!"
+            font_size: 15
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.06
+        Label:
+            id: type_label
+            text: "Type your secret word:"
+            font_size: 16
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.06
+        Label:
+            id: hidden_display
+            text: "_ _ _ _ _"
+            font_size: 32
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.08
+        Label:
+            id: error_label
+            text: ""
+            font_size: 14
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFD700")
+            size_hint_y: 0.05
+        Button:
+            id: back_btn
+            text: "Back"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.07
+            background_color: get_color_from_hex("#8D6E63")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.manager.current = "online_menu"
+        BoxLayout:
+            id: setter_keyboard
+            orientation: "vertical"
+            size_hint_y: 0.42
+            spacing: 6
+
+<OnlineSetterP2Screen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 12
+        Label:
+            id: title_label
+            text: "Player 2"
+            font_size: 36
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.1
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: subtitle_label
+            text: "Type your secret word"
+            font_size: 16
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.07
+        Label:
+            id: hidden_display
+            text: "_ _ _ _ _"
+            font_size: 36
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.1
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: error_label
+            text: ""
+            font_size: 14
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFD700")
+            size_hint_y: 0.06
+        Button:
+            id: back_btn
+            text: "Back"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.07
+            background_color: get_color_from_hex("#8D6E63")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.manager.current = "online_join"
+        BoxLayout:
+            id: setter_keyboard
+            orientation: "vertical"
+            size_hint_y: 0.6
+            spacing: 6
+
+<OnlineJoinScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 40
+        spacing: 16
+        Label:
+            id: title_label
+            text: "Join a Game"
+            font_size: 36
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.13
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: subtitle_label
+            text: "Enter the 4-digit game code:"
+            font_size: 16
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.07
+        Label:
+            id: code_input_display
+            text: "____"
+            font_size: 56
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFD700")
+            size_hint_y: 0.16
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        Label:
+            id: join_error_label
+            text: ""
+            font_size: 14
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFD700")
+            size_hint_y: 0.06
+        GridLayout:
+            cols: 3
+            spacing: 8
+            size_hint_y: 0.28
+            padding: [20, 0]
+            Button:
+                text: "1"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("1")
+            Button:
+                text: "2"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("2")
+            Button:
+                text: "3"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("3")
+            Button:
+                text: "4"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("4")
+            Button:
+                text: "5"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("5")
+            Button:
+                text: "6"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("6")
+            Button:
+                text: "7"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("7")
+            Button:
+                text: "8"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("8")
+            Button:
+                text: "9"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("9")
+            Button:
+                text: "X"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#BF360C")
+                background_normal: ""
+                on_press: root.on_backspace()
+            Button:
+                text: "0"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#558B2F")
+                background_normal: ""
+                on_press: root.on_digit("0")
+            Button:
+                text: "V"
+                font_name: "NotoHebrewBold"
+                font_size: 28
+                background_color: get_color_from_hex("#1B5E20")
+                background_normal: ""
+                on_press: root.on_join()
+        Button:
+            id: back_btn
+            text: "Back"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.08
+            background_color: get_color_from_hex("#8D6E63")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.manager.current = "online_menu"
+        Label:
+            size_hint_y: 0.06
+
+<OnlineGameScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: [10, 10]
+        spacing: 6
+        BoxLayout:
+            size_hint_y: 0.08
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.3
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+            Label:
+                id: title_label
+                text: "The Word Game"
+                font_size: 26
+                bold: True
+                font_name: "NotoHebrewBold"
+                color: get_color_from_hex("#FFFFFF")
+        BoxLayout:
+            size_hint_y: 0.06
+            spacing: 8
+            Label:
+                id: message_label
+                text: ""
+                font_size: 22
+                font_name: "NotoHebrewBold"
+                color: get_color_from_hex("#FFD700")
+            Button:
+                id: menu_btn
+                text: "Menu"
+                font_size: 16
+                font_name: "NotoHebrewBold"
+                size_hint_x: 0.25
+                background_color: get_color_from_hex("#8D6E63")
+                background_normal: ""
+        ScrollView:
+            size_hint_y: 0.55
+            do_scroll_x: False
+            do_scroll_y: True
+            GridLayout:
+                id: tile_grid
+                cols: 5
+                rows: 6
+                spacing: 6
+                size_hint_y: None
+                row_default_height: 56
+                height: self.minimum_height
+                padding: [20, 4]
+        BoxLayout:
+            id: keyboard_area
+            orientation: "vertical"
+            size_hint_y: 0.31
+            spacing: 6
+            orientation: "vertical"
+            size_hint_y: 0.31
+            spacing: 6
+            id: keyboard_area
+            orientation: "vertical"
+            size_hint_y: 0.36
+            spacing: 6
+
+<RulesScreen>:
+    canvas.before:
+        Color:
+            rgba: 1, 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            source: "dacha_bg.png"
+    BoxLayout:
+        orientation: "vertical"
+        padding: 30
+        spacing: 16
+        Label:
+            id: title_label
+            text: "Rules"
+            font_size: 36
+            bold: True
+            font_name: "NotoHebrewBold"
+            color: get_color_from_hex("#FFFFFF")
+            size_hint_y: 0.1
+            canvas.before:
+                Color:
+                    rgba: 0, 0, 0, 0.35
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: [10]
+        ScrollView:
+            size_hint_y: 0.78
+            Label:
+                id: rules_text
+                text: ""
+                font_size: 18
+                font_name: "NotoHebrewBold"
+                color: get_color_from_hex("#FFFFFF")
+                size_hint_y: None
+                height: self.texture_size[1]
+                text_size: self.width, None
+                halign: "left"
+                valign: "top"
+                canvas.before:
+                    Color:
+                        rgba: 0, 0, 0, 0.35
+                    RoundedRectangle:
+                        pos: self.pos
+                        size: self.size
+                        radius: [10]
+        Button:
+            id: back_btn
+            text: "Back"
+            font_size: 28
+            font_name: "NotoHebrewBold"
+            size_hint_y: 0.12
+            background_color: get_color_from_hex("#8D6E63")
+            background_normal: ""
+            color: [1, 1, 1, 1]
+            on_press: root.manager.current = "mode_screen"

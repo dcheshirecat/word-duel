@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "thewordgame-2c3ec",
+  "private_key_id": "56dabc0e1728d6b68139039f44f3b85787f94ae5",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCjM1rn7D8QbQhj\ne8LpDnu2hWLRdgbwmqPHImqd8VMhkfrB5MqxJN+36q7KxEejQOtbvw2xAKjidHCU\nE4LdfIR+0mSERs8DaJre9O4rpGi9lgJ8ZcfUchFM9zutWsLa3VC9SZatMDKtb1Kf\n2QYkbJdOx76ZudNGc6uvrd4mOkT86wgoaoWrSBIvlC7+vMhfpT3X0NwHpZgicVX6\n4LRu51Lw9J2LrhJ1BPBQmjAOko+ketTKNhF27Ozb2yhUu2DOmE4oJwKtu/WX+VuY\nM7H12FqW6DA8suxmFyIPtlvwu2gATnMWeoE7L0w2v+N78U5PqrWh8CRCF/Ew8AkX\ntFpFAHpHAgMBAAECggEANN0DMsG7Mcpnn7XsjkpjN12gg0HMgK5Oo8fZqjyL1YFw\nLNM79sJ/dxcdNE/89nwmYKsTt8SDcAsQll51kuHtFxl2dsRq9Osy00qaRWe1h8eq\nGXpsjru+L+Sbn40ZNgTfTNkj5giJOdWn+WA2laDZKCsaabggIB+Cut7CaTaRtyyz\n9ejrykRKi5W6WPJAxtjfHAP5s1qZkwWWa+RmJXY72ncLsJyqvz2sVR7k41W8B2Yl\nh/XXb3YQrj8bCAzbrGwgJ+9fknxzr8mj2MDe4GToSRMTR/x4dRFrmQu49LK1vsg1\nEZUUN8YD3VA3Z++ZwFaWZOjuYfrhVn4BMSXgbg1ZgQKBgQDXlXEr5ENczH5xP66P\n5nNFinADbrDpEm0g97QWJ79NGF7q5gt1jcUuGATzMhDfl4zFUkuK3m1fCLbJPP6W\nGT4FY94MkHcOGGxowPx+kfSrCKh9WkYgUUWxFd9Tne0rhOfv4TB44np2FO1OWeHb\nv+deUQMskuWehEZsFubMBKQsgQKBgQDBy+CHw10Lfd2A73XQH5lg7HmgENPGZVDO\n5ROYR7fyQNzF87Vlm1AXkSAWhCQROPAlw8OtmQRM9dVHBs6+0IljA1MODbyN3vWi\nJ0lXoxtNCB8S/XDTXuTDp5X/NSZfPjG5lHJwhzpr1nzHPMiY20MR6LlEFLI5xIFv\nhpyWjhjixwKBgQC4nqY4bFaz1fxCh8K6QSReXVvn1Jd0Qe9q2DZE8u0E3OYMS81s\ncmh2POOgUTPaBzLqmLtQxYLsa839MFrlt+BBRXEXWXBbhdbxLrQMwHnDLrr7/p8n\ndfI04QJL3WcKadsmtraID4vIK8u92YNuaT1+q+oH9hTmV2jnkAU+moruAQKBgQCI\nL+TGo1S0qavKWv0Y18vqX+QMxyZ7qmFCM5s0jVnIBSrgdSZJk/6RwSuihxPtgmzI\nrSzKxthN2QgbFL6fO18A1Ko+GwshS8ikPiV9T6L03DsyFiZ+c5YhpJh1Mv2XOtao\nypgtWeqFM8KWJLH3MUaNxFTFciHZFK29GQTbjFoSqwKBgQCwe+sEhHZSY4CADc5Z\nTx57Qf12QpSvU+IJlj2x9yniZT6vxSgQzXxj21fdZdcluOgwEZCr4kWQSSqUNeqN\nch7ryCZL4f5bh+E49t6Qlhf5Qyx1EFVhBcHw6Nbrs8qAqYskTsJeEI/Lg3lE5lDH\nfRHdyS0EdBFO0oRsA8Jvy5FvHQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@thewordgame-2c3ec.iam.gserviceaccount.com",
+  "client_id": "104362195465120748209",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40thewordgame-2c3ec.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
