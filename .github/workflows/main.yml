@@ -67,6 +67,10 @@ jobs:
           [buildozer]
           log_level = 2
           EOF
+          
+      - name: Clean previous build cache
+        run: |
+          rm -rf .buildozer
 
       - name: Build APK
         run: |
