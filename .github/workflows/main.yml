@@ -27,6 +27,8 @@ jobs:
             unzip \
             openjdk-17-jdk \
             autoconf \
+            automake \
+            autopoint \
             libtool \
             pkg-config \
             zlib1g-dev \
@@ -35,6 +37,7 @@ jobs:
             cmake \
             libffi-dev \
             libssl-dev
+
 
       - name: Install Python dependencies
         run: |
