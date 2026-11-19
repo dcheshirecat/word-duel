@@ -19,7 +19,7 @@ Also: hints (reveal a letter), hard mode, stats with guess distribution, a high-
 ```
 main.py                  entry point (Buildozer needs it at the root)
 wordduel/core/           pure logic, no Kivy: rules, words, game round, challenge codes, storage, i18n, bidi
-wordduel/ui/             Kivy app, screens, widgets, theme, wordduel.kv
+wordduel/ui/             Kivy app, screens, widgets, theme, layout.kv
 words/                   generated word lists ({lang}_{n}_valid.txt / _answers.txt)
 assets/                  fonts (Fredoka, OFL), sounds, icon
 tools/                   word-list builder, sound generator, screenshot harness, sources

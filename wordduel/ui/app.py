@@ -13,7 +13,9 @@ from . import theme
 from .platform_services import Sounds, vibrate
 from .widgets import Background, Confetti, Toast
 
-KV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wordduel.kv")
+# Not named wordduel.kv on purpose: Kivy auto-loads "<appname>.kv", and we
+# load it ourselves after registering fonts. Same name = loaded twice.
+KV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "layout.kv")
 
 
 class WordDuelApp(App):
