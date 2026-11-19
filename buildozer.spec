@@ -4,12 +4,10 @@ package.name = wordduel
 package.domain = org.wordduel
 source.dir = .
 source.include_exts = py,kv,ttf,txt,wav,png
-source.exclude_dirs = tools,tests,bin,.github,.buildozer,__pycache__
+source.exclude_dirs = tools,tests,bin,recipes,.github,.buildozer,__pycache__
 source.exclude_patterns = README.md
 version = 2.0.0
-# charset-normalizer (via Kivy -> requests) is pinned below 3.5: newer versions ship
-# Android wheels that python-for-android resolves but then fails to install.
-requirements = python3,kivy==2.3.1,charset-normalizer==3.4.9
+requirements = python3,kivy==2.3.1
 orientation = portrait
 fullscreen = 0
 icon.filename = %(source.dir)s/assets/icon.png
@@ -20,6 +18,8 @@ android.ndk = 25b
 android.archs = arm64-v8a
 android.window_softinput_mode = adjustResize
 android.accept_sdk_license = True
+# Local Kivy recipe without `requests` (see recipes/kivy/__init__.py)
+p4a.local_recipes = ./recipes
 
 [buildozer]
 log_level = 2
