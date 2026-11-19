@@ -18,6 +18,10 @@ android.ndk = 25b
 android.archs = arm64-v8a
 android.window_softinput_mode = adjustResize
 android.accept_sdk_license = True
+# Pin python-for-android to a stable release. Its master branch currently
+# fails to install Android-only wheels (e.g. charset-normalizer) pulled in
+# through Kivy's dependencies.
+p4a.branch = v2024.01.21
 
 [buildozer]
 log_level = 2
