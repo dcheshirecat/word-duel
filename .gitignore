@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.buildozer/
+bin/
+.pytest_cache/
+# Never commit service-account keys
+*firebase*key*.json
+*-adminsdk-*.json

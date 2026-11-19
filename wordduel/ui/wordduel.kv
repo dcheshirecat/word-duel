@@ -1,0 +1,815 @@
+#:import theme wordduel.ui.theme
+#:import Animation kivy.animation.Animation
+
+# ------------------------------------------------------------ building blocks
+
+<ChunkyButton>:
+    padding: [self.pad_x, self.depth * self.press + self.pad_y, self.pad_x, self.depth * (1 - self.press) + self.pad_y]
+    canvas.before:
+        Color:
+            rgba: 0, 0, 0, .16
+        RoundedRectangle:
+            pos: self.x, self.y - dp(3)
+            size: self.width, self.height - self.depth * self.press
+            radius: [self.radius]
+        Color:
+            rgba: self.edge or theme.darker(self.face, .24)
+        RoundedRectangle:
+            pos: self.pos
+            size: self.width, self.height - self.depth * self.press
+            radius: [self.radius]
+        Color:
+            rgba: self.face
+        RoundedRectangle:
+            pos: self.x, self.y + self.depth * (1 - self.press)
+            size: self.width, self.height - self.depth
+            radius: [self.radius]
+        Color:
+            rgba: 1, 1, 1, .25
+        RoundedRectangle:
+            pos: self.x + self.radius * .7, self.top - self.depth * self.press - (self.height - self.depth) * .2
+            size: max(self.width - self.radius * 1.4, 0), max((self.height - self.depth) * .1, dp(3))
+            radius: [dp(3)]
+
+<Txt@RtlLabel>:
+    color: theme.WHITE
+    font_size: dp(17)
+
+<InkTxt@RtlLabel>:
+    color: theme.INK
+    font_size: dp(16)
+
+<Title@RtlLabel>:
+    font_name: theme.FONT_BOLD
+    font_size: dp(34)
+    color: theme.WHITE
+    outline_width: dp(2)
+    outline_color: theme.darker(theme.BG_TOP, .45)[:3]
+
+<Card@BoxLayout>:
+    orientation: "vertical"
+    padding: dp(18)
+    spacing: dp(10)
+    canvas.before:
+        Color:
+            rgba: 0, 0, 0, .14
+        RoundedRectangle:
+            pos: self.x, self.y - dp(6)
+            size: self.size
+            radius: [dp(26)]
+        Color:
+            rgba: theme.CARD
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(26)]
+
+<TextButton@ChunkyButton>:
+    text: ""
+    ink: theme.WHITE
+    font_size: dp(20)
+    size_hint_y: None
+    height: dp(60)
+    RtlLabel:
+        rtext: root.text
+        font_name: theme.FONT_BOLD
+        font_size: root.font_size
+        color: root.ink
+
+<ModeButton@ChunkyButton>:
+    icon: ""
+    title: ""
+    sub: ""
+    badge: ""
+    ink: theme.WHITE
+    size_hint_y: None
+    height: dp(80)
+    spacing: dp(12)
+    rtl: app.lang == "he"
+    Icon:
+        name: root.icon
+        color: root.ink
+        size_hint_x: None
+        width: dp(38)
+    BoxLayout:
+        orientation: "vertical"
+        padding: 0, dp(4)
+        RtlLabel:
+            rtext: root.title
+            align: "start"
+            font_name: theme.FONT_BOLD
+            font_size: dp(23)
+            color: root.ink
+        RtlLabel:
+            rtext: root.sub
+            align: "start"
+            font_size: dp(14)
+            color: root.ink[:3] + [.82]
+    RtlLabel:
+        rtext: root.badge
+        size_hint_x: None
+        width: dp(52) if root.badge else 0
+        font_name: theme.FONT_BOLD
+        font_size: dp(20)
+        color: root.ink
+
+<TopBar@FloatLayout>:
+    title: ""
+    sub: ""
+    screen: None
+    size_hint_y: None
+    height: dp(62)
+    IconButton:
+        name: "back"
+        mirror: app.lang == "he"
+        size_hint: None, None
+        size: dp(46), dp(46)
+        pos_hint: {"center_y": .5, "right": 1} if app.lang == "he" else {"center_y": .5, "x": 0}
+        on_release: root.screen.go_back() if root.screen else None
+    BoxLayout:
+        orientation: "vertical"
+        size_hint: .66, 1
+        pos_hint: {"center_x": .5, "center_y": .5}
+        Title:
+            rtext: root.title
+            font_size: dp(25) if root.sub else dp(28)
+        Txt:
+            rtext: root.sub
+            font_size: dp(14)
+            size_hint_y: .55 if root.sub else 0.001
+            opacity: 1 if root.sub else 0
+
+<StatTile@BoxLayout>:
+    value: "0"
+    label: ""
+    orientation: "vertical"
+    InkTxt:
+        rtext: root.value
+        font_name: theme.FONT_BOLD
+        font_size: dp(34)
+    InkTxt:
+        rtext: root.label
+        font_size: dp(13)
+        color: theme.INK_SOFT
+        size_hint_y: .45
+
+<SettingRow@MirrorBox>:
+    label: ""
+    note: ""
+    size_hint_y: None
+    height: dp(70) if self.note else dp(54)
+    spacing: dp(10)
+    rtl: app.lang == "he"
+    BoxLayout:
+        orientation: "vertical"
+        InkTxt:
+            rtext: root.label
+            align: "start"
+            font_name: theme.FONT_BOLD
+            font_size: dp(18)
+        InkTxt:
+            rtext: root.note
+            align: "start"
+            font_size: dp(13)
+            color: theme.INK_SOFT
+            size_hint_y: .8 if root.note else 0.001
+            opacity: 1 if root.note else 0
+
+<LegendRow@MirrorBox>:
+    state: "correct"
+    letter: "A"
+    text: ""
+    size_hint_y: None
+    height: dp(52)
+    spacing: dp(14)
+    rtl: app.lang == "he"
+    Tile:
+        size_hint_x: None
+        width: self.height
+        letter: root.letter
+        state: root.state
+    InkTxt:
+        rtext: root.text
+        align: "start"
+
+# -------------------------------------------------------------------- home
+
+<HomeScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(18), dp(10), dp(18), dp(16)
+        spacing: dp(12)
+        FloatLayout:
+            size_hint_y: None
+            height: dp(54)
+            Segmented:
+                size_hint: None, None
+                size: dp(118), dp(46)
+                pos_hint: {"x": 0, "center_y": .5} if app.lang != "he" else {"right": 1, "center_y": .5}
+                values: ["en", "he"]
+                labels: ["EN", "עב"]
+                value: app.lang
+                on_value: app.set_language(self.value)
+            BoxLayout:
+                size_hint: None, None
+                size: dp(104), dp(46)
+                spacing: dp(12)
+                pos_hint: {"right": 1, "center_y": .5} if app.lang != "he" else {"x": 0, "center_y": .5}
+                IconButton:
+                    name: "stats"
+                    on_release: app.go("stats")
+                IconButton:
+                    name: "gear"
+                    on_release: app.go("settings")
+        Logo:
+            lang: app.lang
+            size_hint_y: .9
+        Txt:
+            rtext: app.tr("tagline", app.lang)
+            size_hint_y: None
+            height: dp(26)
+        Widget:
+            size_hint_y: .08
+        ModeButton:
+            face: theme.YELLOW
+            ink: theme.INK
+            icon: "calendar"
+            title: app.tr("daily", app.lang)
+            sub: root.daily_sub
+            badge: str(root.streak) if root.streak else ""
+            on_release: root.play("daily")
+        ModeButton:
+            face: theme.MINT
+            icon: "infinity"
+            title: app.tr("solo", app.lang)
+            sub: root.solo_sub
+            on_release: root.play("solo")
+        ModeButton:
+            face: theme.SKY
+            icon: "people"
+            title: app.tr("pass_play", app.lang)
+            sub: app.tr("pass_play_sub", app.lang)
+            on_release: root.play("pass")
+        ModeButton:
+            face: theme.CORAL
+            icon: "globe"
+            title: app.tr("online", app.lang)
+            sub: app.tr("online_sub", app.lang)
+            on_release: root.play("online")
+        Widget:
+            size_hint_y: .05
+        AnchorLayout:
+            size_hint_y: None
+            height: dp(48)
+            TextButton:
+                size_hint: None, None
+                size: dp(200), dp(48)
+                height: dp(48)
+                face: [1, 1, 1, .22]
+                edge: [1, 1, 1, .12]
+                depth: dp(4)
+                font_size: dp(17)
+                text: app.tr("rules", app.lang)
+                on_release: app.go("rules")
+
+# -------------------------------------------------------------------- game
+
+<GameScreen>:
+    FloatLayout:
+        BoxLayout:
+            orientation: "vertical"
+            padding: dp(12), dp(6), dp(12), dp(12)
+            spacing: dp(8)
+            FloatLayout:
+                size_hint_y: None
+                height: dp(62)
+                TopBar:
+                    screen: root
+                    title: root.title
+                    sub: root.subtitle
+                    pos_hint: {"x": 0, "y": 0}
+                ChunkyButton:
+                    size_hint: None, None
+                    size: dp(70), dp(46)
+                    pos_hint: {"right": 1, "center_y": .5} if app.lang != "he" else {"x": 0, "center_y": .5}
+                    face: theme.YELLOW if root.hints_left else theme.CARD_SOFT
+                    depth: dp(4)
+                    radius: dp(16)
+                    pad_x: dp(8)
+                    pad_y: dp(4)
+                    spacing: dp(2)
+                    sound: ""
+                    opacity: 1 if root.show_hint else 0
+                    disabled: not root.show_hint
+                    on_release: root.use_hint()
+                    Icon:
+                        name: "bulb"
+                        color: theme.INK
+                    RtlLabel:
+                        rtext: str(root.hints_left)
+                        font_name: theme.FONT_BOLD
+                        font_size: dp(19)
+                        color: theme.INK
+                        size_hint_x: .6
+            Board:
+                id: board
+            Keyboard:
+                id: keyboard
+                size_hint_y: None
+                height: dp(196)
+                on_letter: root.key_letter(args[1])
+                on_enter: root.key_enter()
+                on_delete: root.key_delete()
+        Card:
+            id: panel
+            size_hint: 1, None
+            height: dp(360)
+            x: root.x
+            padding: dp(20), dp(18), dp(20), dp(26)
+            Title:
+                rtext: root.r_title
+                color: theme.GRAPE
+                outline_width: 0
+                font_size: dp(36)
+                size_hint_y: None
+                height: dp(46)
+            InkTxt:
+                rtext: root.r_sub
+                font_name: theme.FONT_BOLD
+                font_size: dp(19)
+                size_hint_y: None
+                height: dp(28)
+            MirrorBox:
+                rtl: app.lang == "he"
+                size_hint_y: None
+                height: dp(70) if root.r_stats else 0
+                opacity: 1 if root.r_stats else 0
+                StatTile:
+                    value: root.r_stats[0][0] if root.r_stats else ""
+                    label: root.r_stats[0][1] if root.r_stats else ""
+                StatTile:
+                    value: root.r_stats[1][0] if root.r_stats else ""
+                    label: root.r_stats[1][1] if root.r_stats else ""
+                StatTile:
+                    value: root.r_stats[2][0] if root.r_stats else ""
+                    label: root.r_stats[2][1] if root.r_stats else ""
+                StatTile:
+                    value: root.r_stats[3][0] if root.r_stats else ""
+                    label: root.r_stats[3][1] if root.r_stats else ""
+            InkTxt:
+                rtext: root.r_extra
+                color: theme.INK_SOFT
+                font_size: dp(16)
+                size_hint_y: None
+                height: dp(26)
+            Widget:
+            MirrorBox:
+                rtl: app.lang == "he"
+                size_hint_y: None
+                height: dp(62)
+                spacing: dp(12)
+                TextButton:
+                    text: app.tr("share", app.lang)
+                    face: theme.SKY
+                    size_hint_x: .8 if root.r_can_share else 0.001
+                    opacity: 1 if root.r_can_share else 0
+                    disabled: not root.r_can_share
+                    on_release: root.do_share()
+                TextButton:
+                    text: root.r_primary
+                    face: theme.MINT
+                    on_release: root.primary_action()
+            TextButton:
+                text: app.tr("menu", app.lang)
+                face: theme.CARD_SOFT
+                ink: theme.INK
+                height: dp(50)
+                font_size: dp(17)
+                depth: dp(4)
+                opacity: 1 if root.r_primary != app.tr("menu", app.lang) else 0
+                disabled: root.r_primary == app.tr("menu", app.lang)
+                on_release: app.back()
+
+# ------------------------------------------------------------------ setter
+
+<SetterScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(14), dp(6), dp(14), dp(12)
+        spacing: dp(10)
+        TopBar:
+            screen: root
+            title: root.title
+        Card:
+            size_hint_y: None
+            height: dp(128) if root.online_mode else 0
+            opacity: 1 if root.online_mode else 0
+            padding: dp(14)
+            spacing: dp(4)
+            InkTxt:
+                rtext: app.tr("your_code", app.lang)
+                color: theme.INK_SOFT
+                font_size: dp(14)
+                size_hint_y: .5
+            MirrorBox:
+                spacing: dp(10)
+                rtl: app.lang == "he"
+                InkTxt:
+                    rtext: " ".join(root.code) if root.code else "· · · · · ·"
+                    font_name: theme.FONT_BOLD
+                    font_size: dp(38)
+                IconButton:
+                    name: "share"
+                    color: theme.GRAPE
+                    size_hint_x: None
+                    width: dp(44) if root.code else 0
+                    opacity: 1 if root.code else 0
+                    on_release: root.share_code()
+            InkTxt:
+                rtext: root.code_status
+                color: theme.GRAPE
+                font_name: theme.FONT_BOLD
+                font_size: dp(15)
+                size_hint_y: .5
+        Widget:
+            size_hint_y: .12
+        Title:
+            rtext: app.tr("type_secret", app.lang)
+            font_size: dp(28)
+            size_hint_y: None
+            height: dp(40)
+        Txt:
+            rtext: app.tr("secret_hint", app.lang, n=root.length)
+            size_hint_y: None
+            height: dp(26)
+        FloatLayout:
+            size_hint_y: .7
+            Board:
+                id: board
+                rows: 1
+                max_tile: dp(64)
+                size_hint: .82, 1
+                pos_hint: {"center_x": .5, "center_y": .5}
+            IconButton:
+                name: "eye"
+                size_hint: None, None
+                size: dp(40), dp(40)
+                opacity: 1 if root.peek else .6
+                pos_hint: {"right": 1, "center_y": .5} if app.lang != "he" else {"x": 0, "center_y": .5}
+                on_release: root.toggle_peek()
+        TextButton:
+            text: app.tr("lock_in", app.lang)
+            face: theme.YELLOW
+            ink: theme.INK
+            size_hint_x: .8
+            pos_hint: {"center_x": .5}
+            opacity: .6 if root.working else 1
+            on_release: root.lock_in()
+        Widget:
+            size_hint_y: .1
+        Keyboard:
+            id: keyboard
+            size_hint_y: None
+            height: dp(196)
+            on_letter: root.key_letter(args[1])
+            on_enter: root.key_enter()
+            on_delete: root.key_delete()
+
+<PassPhoneScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(6), dp(24), dp(40)
+        spacing: dp(18)
+        TopBar:
+            screen: root
+        Widget:
+            size_hint_y: .3
+        Icon:
+            name: "phone"
+            max_size: dp(130)
+            size_hint_y: None
+            height: dp(130)
+        Title:
+            rtext: app.tr("pass_phone", app.lang)
+            font_size: dp(40)
+            size_hint_y: None
+            height: dp(56)
+        Txt:
+            rtext: app.tr("pass_instruction", app.lang, name=root.who)
+            font_size: dp(20)
+            size_hint_y: None
+            height: dp(64)
+        Widget:
+        TextButton:
+            text: app.tr("im_ready", app.lang, name=root.who)
+            face: theme.MINT
+            height: dp(70)
+            font_size: dp(23)
+            on_release: root.ready()
+
+# ------------------------------------------------------------------ online
+
+<OnlineMenuScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(6), dp(24), dp(40)
+        spacing: dp(18)
+        TopBar:
+            screen: root
+            title: app.tr("online_title", app.lang)
+        Widget:
+            size_hint_y: .3
+        Icon:
+            name: "globe"
+            max_size: dp(120)
+            size_hint_y: None
+            height: dp(120)
+        Txt:
+            rtext: app.tr("online_intro", app.lang)
+            wrap: True
+            font_size: dp(20)
+            size_hint_y: None
+            height: self.texture_size[1] + dp(8)
+        Widget:
+        TextButton:
+            text: app.tr("create_game", app.lang)
+            face: theme.YELLOW
+            ink: theme.INK
+            height: dp(70)
+            font_size: dp(23)
+            on_release: root.create()
+        TextButton:
+            text: app.tr("join_game", app.lang)
+            face: theme.SKY
+            height: dp(70)
+            font_size: dp(23)
+            on_release: root.join()
+
+<JoinScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(6), dp(24), dp(24)
+        spacing: dp(16)
+        TopBar:
+            screen: root
+            title: app.tr("join_game", app.lang)
+        Txt:
+            rtext: app.tr("enter_code", app.lang)
+            font_size: dp(19)
+            size_hint_y: None
+            height: dp(40)
+        Card:
+            size_hint_y: None
+            height: dp(92)
+            InkTxt:
+                rtext: " ".join((root.code + "______")[:6])
+                font_name: theme.FONT_BOLD
+                font_size: dp(42)
+        Keypad:
+            on_letter: root.key_letter(args[1])
+            on_delete: root.key_delete()
+        TextButton:
+            text: app.tr("connecting", app.lang) if root.working else app.tr("join", app.lang)
+            face: theme.MINT
+            height: dp(68)
+            font_size: dp(23)
+            on_release: root.join()
+
+<OnlineGameScreen>:
+    FloatLayout:
+        BoxLayout:
+            orientation: "vertical"
+            padding: dp(12), dp(6), dp(12), dp(12)
+            spacing: dp(8)
+            TopBar:
+                screen: root
+                title: app.tr("online_title", app.lang)
+                sub: root.code
+            MirrorBox:
+                size_hint_y: None
+                height: dp(72)
+                spacing: dp(10)
+                rtl: app.lang == "he"
+                ChunkyButton:
+                    face: theme.WHITE
+                    depth: dp(4)
+                    sound: ""
+                    InkTxt:
+                        rtext: root.status
+                        font_name: theme.FONT_BOLD
+                        font_size: dp(18)
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_x: None
+                    width: dp(76)
+                    Txt:
+                        rtext: app.tr("their_board", app.lang)
+                        font_size: dp(12)
+                        size_hint_y: None
+                        height: dp(16)
+                    Board:
+                        id: mini
+                        max_tile: dp(10)
+                        gap_ratio: .25
+            Board:
+                id: board
+            Keyboard:
+                id: keyboard
+                size_hint_y: None
+                height: dp(196)
+                on_letter: root.key_letter(args[1])
+                on_enter: root.key_enter()
+                on_delete: root.key_delete()
+        Card:
+            id: panel
+            size_hint: 1, None
+            height: dp(280)
+            x: root.x
+            padding: dp(20), dp(18), dp(20), dp(26)
+            Title:
+                rtext: root.r_title
+                color: theme.GRAPE
+                outline_width: 0
+                font_size: dp(32)
+                size_hint_y: None
+                height: dp(46)
+            InkTxt:
+                rtext: root.r_sub
+                font_name: theme.FONT_BOLD
+                font_size: dp(19)
+                size_hint_y: None
+                height: dp(30)
+            InkTxt:
+                rtext: root.r_extra
+                wrap: True
+                color: theme.CORAL
+                size_hint_y: None
+                height: self.texture_size[1] if root.r_extra else 0
+            Widget:
+            TextButton:
+                text: app.tr("menu", app.lang)
+                face: theme.MINT
+                on_release: root.to_menu()
+
+# -------------------------------------------------------------- stats etc
+
+<StatsScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(18), dp(6), dp(18), dp(24)
+        spacing: dp(16)
+        TopBar:
+            screen: root
+            title: app.tr("stats", app.lang)
+        Segmented:
+            size_hint_y: None
+            height: dp(52)
+            values: ["daily", "solo"]
+            labels: [app.tr("daily", app.lang), app.tr("solo", app.lang)]
+            value: root.mode
+            on_value: root.mode = self.value
+        Card:
+            size_hint_y: None
+            height: dp(110)
+            MirrorBox:
+                rtl: app.lang == "he"
+                StatTile:
+                    value: root.played
+                    label: app.tr("played", app.lang)
+                StatTile:
+                    value: root.pct
+                    label: app.tr("win_pct", app.lang)
+                StatTile:
+                    value: root.streak
+                    label: app.tr("streak", app.lang)
+                StatTile:
+                    value: root.best
+                    label: app.tr("best", app.lang)
+        Card:
+            InkTxt:
+                rtext: app.tr("distribution", app.lang)
+                font_name: theme.FONT_BOLD
+                font_size: dp(19)
+                size_hint_y: None
+                height: dp(30)
+            FloatLayout:
+                DistChart:
+                    dist: root.dist
+                    highlight: root.last
+                    opacity: 0 if root.empty else 1
+                    pos: self.parent.pos
+                    size: self.parent.size
+                InkTxt:
+                    rtext: app.tr("no_games", app.lang)
+                    color: theme.INK_SOFT
+                    opacity: 1 if root.empty else 0
+                    pos: self.parent.pos
+                    size: self.parent.size
+        Widget:
+            size_hint_y: .15
+
+<SettingsScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(18), dp(6), dp(18), dp(24)
+        spacing: dp(14)
+        TopBar:
+            screen: root
+            title: app.tr("settings", app.lang)
+        Card:
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: dp(8)
+            SettingRow:
+                label: app.tr("language", app.lang)
+                Segmented:
+                    size_hint_x: None
+                    width: dp(150)
+                    values: ["en", "he"]
+                    labels: ["English", "עברית"]
+                    value: app.lang
+                    on_value: app.set_language(self.value)
+            SettingRow:
+                label: app.tr("word_length", app.lang)
+                note: app.tr("word_length_note", app.lang)
+                Segmented:
+                    size_hint_x: None
+                    width: dp(150)
+                    values: [4, 5, 6]
+                    value: app.settings["word_length"]
+                    on_value: app.set_setting("word_length", self.value)
+            SettingRow:
+                label: app.tr("hard_mode", app.lang)
+                note: app.tr("hard_mode_note", app.lang)
+                Toggle:
+                    size_hint_x: None
+                    width: dp(64)
+                    active: app.settings["hard_mode"]
+                    on_active: app.set_setting("hard_mode", self.active)
+            SettingRow:
+                label: app.tr("colorblind", app.lang)
+                note: app.tr("colorblind_note", app.lang)
+                Toggle:
+                    size_hint_x: None
+                    width: dp(64)
+                    active: app.settings["colorblind"]
+                    on_active: app.set_setting("colorblind", self.active)
+            SettingRow:
+                label: app.tr("sound", app.lang)
+                Toggle:
+                    size_hint_x: None
+                    width: dp(64)
+                    active: app.settings["sound"]
+                    on_active: app.set_setting("sound", self.active)
+            SettingRow:
+                label: app.tr("vibration", app.lang)
+                Toggle:
+                    size_hint_x: None
+                    width: dp(64)
+                    active: app.settings["vibration"]
+                    on_active: app.set_setting("vibration", self.active)
+        Widget:
+
+<RulesScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(18), dp(6), dp(18), dp(20)
+        spacing: dp(12)
+        TopBar:
+            screen: root
+            title: app.tr("rules", app.lang)
+        ScrollView:
+            do_scroll_x: False
+            bar_width: dp(4)
+            Card:
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(12)
+                InkTxt:
+                    rtext: app.tr("rules_text", app.lang)
+                    align: "start"
+                    wrap: True
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                LegendRow:
+                    state: "correct"
+                    letter: "ש" if app.lang == "he" else "W"
+                    text: app.tr("rule_correct", app.lang)
+                LegendRow:
+                    state: "present"
+                    letter: "ל" if app.lang == "he" else "O"
+                    text: app.tr("rule_present", app.lang)
+                LegendRow:
+                    state: "absent"
+                    letter: "ם" if app.lang == "he" else "D"
+                    text: app.tr("rule_absent", app.lang)
+                InkTxt:
+                    rtext: app.tr("rules_more", app.lang)
+                    align: "start"
+                    wrap: True
+                    size_hint_y: None
+                    height: self.texture_size[1]
+        TextButton:
+            text: app.tr("got_it", app.lang)
+            face: theme.MINT
+            on_release: root.go_back()
