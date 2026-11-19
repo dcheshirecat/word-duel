@@ -252,10 +252,10 @@
             on_release: root.play("pass")
         ModeButton:
             face: theme.CORAL
-            icon: "globe"
-            title: app.tr("online", app.lang)
-            sub: app.tr("online_sub", app.lang)
-            on_release: root.play("online")
+            icon: "share"
+            title: app.tr("challenge", app.lang)
+            sub: app.tr("challenge_sub", app.lang)
+            on_release: root.play("challenge")
         Widget:
             size_hint_y: .05
         AnchorLayout:
@@ -400,39 +400,8 @@
         TopBar:
             screen: root
             title: root.title
-        Card:
-            size_hint_y: None
-            height: dp(128) if root.online_mode else 0
-            opacity: 1 if root.online_mode else 0
-            padding: dp(14)
-            spacing: dp(4)
-            InkTxt:
-                rtext: app.tr("your_code", app.lang)
-                color: theme.INK_SOFT
-                font_size: dp(14)
-                size_hint_y: .5
-            MirrorBox:
-                spacing: dp(10)
-                rtl: app.lang == "he"
-                InkTxt:
-                    rtext: " ".join(root.code) if root.code else "· · · · · ·"
-                    font_name: theme.FONT_BOLD
-                    font_size: dp(38)
-                IconButton:
-                    name: "share"
-                    color: theme.GRAPE
-                    size_hint_x: None
-                    width: dp(44) if root.code else 0
-                    opacity: 1 if root.code else 0
-                    on_release: root.share_code()
-            InkTxt:
-                rtext: root.code_status
-                color: theme.GRAPE
-                font_name: theme.FONT_BOLD
-                font_size: dp(15)
-                size_hint_y: .5
         Widget:
-            size_hint_y: .12
+            size_hint_y: .3
         Title:
             rtext: app.tr("type_secret", app.lang)
             font_size: dp(28)
@@ -463,7 +432,6 @@
             ink: theme.INK
             size_hint_x: .8
             pos_hint: {"center_x": .5}
-            opacity: .6 if root.working else 1
             on_release: root.lock_in()
         Widget:
             size_hint_y: .1
@@ -507,149 +475,134 @@
             font_size: dp(23)
             on_release: root.ready()
 
-# ------------------------------------------------------------------ online
+# -------------------------------------------------------------- challenges
 
-<OnlineMenuScreen>:
+<ChallengeMenuScreen>:
     BoxLayout:
         orientation: "vertical"
         padding: dp(24), dp(6), dp(24), dp(40)
         spacing: dp(18)
         TopBar:
             screen: root
-            title: app.tr("online_title", app.lang)
+            title: app.tr("challenge_title", app.lang)
         Widget:
             size_hint_y: .3
         Icon:
-            name: "globe"
-            max_size: dp(120)
+            name: "share"
+            max_size: dp(110)
             size_hint_y: None
-            height: dp(120)
+            height: dp(110)
         Txt:
-            rtext: app.tr("online_intro", app.lang)
+            rtext: app.tr("challenge_intro", app.lang)
             wrap: True
             font_size: dp(20)
             size_hint_y: None
             height: self.texture_size[1] + dp(8)
         Widget:
         TextButton:
-            text: app.tr("create_game", app.lang)
+            text: app.tr("challenge_create", app.lang)
             face: theme.YELLOW
             ink: theme.INK
             height: dp(70)
             font_size: dp(23)
             on_release: root.create()
         TextButton:
-            text: app.tr("join_game", app.lang)
+            text: app.tr("challenge_solve", app.lang)
             face: theme.SKY
             height: dp(70)
             font_size: dp(23)
-            on_release: root.join()
+            on_release: root.solve()
 
-<JoinScreen>:
+<ChallengeCodeScreen>:
     BoxLayout:
         orientation: "vertical"
-        padding: dp(24), dp(6), dp(24), dp(24)
+        padding: dp(24), dp(6), dp(24), dp(40)
         spacing: dp(16)
         TopBar:
             screen: root
-            title: app.tr("join_game", app.lang)
-        Txt:
-            rtext: app.tr("enter_code", app.lang)
-            font_size: dp(19)
+            title: app.tr("challenge_title", app.lang)
+        Widget:
+            size_hint_y: .25
+        Title:
+            rtext: app.tr("challenge_code_title", app.lang)
+            font_size: dp(28)
             size_hint_y: None
             height: dp(40)
         Card:
             size_hint_y: None
-            height: dp(92)
+            height: dp(100)
             InkTxt:
-                rtext: " ".join((root.code + "______")[:6])
+                rtext: root.pretty
                 font_name: theme.FONT_BOLD
-                font_size: dp(42)
+                font_size: dp(38)
+        Txt:
+            rtext: app.tr("challenge_code_note", app.lang)
+            wrap: True
+            size_hint_y: None
+            height: self.texture_size[1] + dp(8)
+        Widget:
+        TextButton:
+            text: app.tr("share_code", app.lang)
+            face: theme.YELLOW
+            ink: theme.INK
+            height: dp(70)
+            font_size: dp(23)
+            on_release: root.share_code()
+        MirrorBox:
+            rtl: app.lang == "he"
+            size_hint_y: None
+            height: dp(58)
+            spacing: dp(12)
+            TextButton:
+                text: app.tr("copy_code", app.lang)
+                face: theme.SKY
+                height: dp(58)
+                on_release: root.copy_code()
+            TextButton:
+                text: app.tr("done", app.lang)
+                face: theme.MINT
+                height: dp(58)
+                on_release: app.back()
+
+<SolveScreen>:
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(24), dp(6), dp(24), dp(24)
+        spacing: dp(14)
+        TopBar:
+            screen: root
+            title: app.tr("challenge_solve", app.lang)
+        Txt:
+            rtext: app.tr("enter_code", app.lang)
+            font_size: dp(19)
+            size_hint_y: None
+            height: dp(36)
+        Card:
+            size_hint_y: None
+            height: dp(86)
+            InkTxt:
+                rtext: (lambda c: c[:3] + " " + c[3:6] + " " + c[6:])((root.code + "__________")[:10])
+                font_name: theme.FONT_BOLD
+                font_size: dp(36)
+        TextButton:
+            text: app.tr("paste", app.lang)
+            face: [1, 1, 1, .25]
+            edge: [1, 1, 1, .12]
+            depth: dp(4)
+            height: dp(48)
+            font_size: dp(18)
+            size_hint_x: .5
+            pos_hint: {"center_x": .5}
+            on_release: root.paste()
         Keypad:
             on_letter: root.key_letter(args[1])
             on_delete: root.key_delete()
         TextButton:
-            text: app.tr("connecting", app.lang) if root.working else app.tr("join", app.lang)
+            text: app.tr("play", app.lang)
             face: theme.MINT
             height: dp(68)
             font_size: dp(23)
-            on_release: root.join()
-
-<OnlineGameScreen>:
-    FloatLayout:
-        BoxLayout:
-            orientation: "vertical"
-            padding: dp(12), dp(6), dp(12), dp(12)
-            spacing: dp(8)
-            TopBar:
-                screen: root
-                title: app.tr("online_title", app.lang)
-                sub: root.code
-            MirrorBox:
-                size_hint_y: None
-                height: dp(72)
-                spacing: dp(10)
-                rtl: app.lang == "he"
-                ChunkyButton:
-                    face: theme.WHITE
-                    depth: dp(4)
-                    sound: ""
-                    InkTxt:
-                        rtext: root.status
-                        font_name: theme.FONT_BOLD
-                        font_size: dp(18)
-                BoxLayout:
-                    orientation: "vertical"
-                    size_hint_x: None
-                    width: dp(76)
-                    Txt:
-                        rtext: app.tr("their_board", app.lang)
-                        font_size: dp(12)
-                        size_hint_y: None
-                        height: dp(16)
-                    Board:
-                        id: mini
-                        max_tile: dp(10)
-                        gap_ratio: .25
-            Board:
-                id: board
-            Keyboard:
-                id: keyboard
-                size_hint_y: None
-                height: dp(196)
-                on_letter: root.key_letter(args[1])
-                on_enter: root.key_enter()
-                on_delete: root.key_delete()
-        Card:
-            id: panel
-            size_hint: 1, None
-            height: dp(280)
-            x: root.x
-            padding: dp(20), dp(18), dp(20), dp(26)
-            Title:
-                rtext: root.r_title
-                color: theme.GRAPE
-                outline_width: 0
-                font_size: dp(32)
-                size_hint_y: None
-                height: dp(46)
-            InkTxt:
-                rtext: root.r_sub
-                font_name: theme.FONT_BOLD
-                font_size: dp(19)
-                size_hint_y: None
-                height: dp(30)
-            InkTxt:
-                rtext: root.r_extra
-                wrap: True
-                color: theme.CORAL
-                size_hint_y: None
-                height: self.texture_size[1] if root.r_extra else 0
-            Widget:
-            TextButton:
-                text: app.tr("menu", app.lang)
-                face: theme.MINT
-                on_release: root.to_menu()
+            on_release: root.play()
 
 # -------------------------------------------------------------- stats etc
 

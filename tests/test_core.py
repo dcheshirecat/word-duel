@@ -3,12 +3,10 @@ import random
 
 import pytest
 
-from wordduel.core import bidi, online, words
+from wordduel.core import bidi, challenge, words
 from wordduel.core.rules import (ABSENT, CORRECT, PRESENT, hard_mode_violation, letter_states,
                                  normalize_word, pick_hint, score_guess)
 from wordduel.core.storage import DailyProgress, Settings, Stats
-
-from tests.fakes import FakeFirestore
 
 
 # ------------------------------------------------------------------ rules ---
@@ -110,89 +108,37 @@ def test_settings_and_progress(tmp_path):
     assert p.load("en", 6) is None
 
 
-# ----------------------------------------------------------------- online ---
+# -------------------------------------------------------------- challenge ---
 
-def test_online_duel_full_game():
-    fs = FakeFirestore()
-    a = online.OnlineClient(fs, rng=random.Random(1))
-    b = online.OnlineClient(fs)
-    code = a.create_game("en", 5)
-    assert len(code) == 6
-
-    salt_a, commit_a = online.make_commitment("crane")
-    salt_b, commit_b = online.make_commitment("pluot")
-    a.commit_word(code, "p1", commit_a)
-    b.join_game(code)
-    with pytest.raises(online.GameError):
-        online.OnlineClient(fs).join_game(code)  # third player
-    snap = b.commit_word(code, "p2", commit_b)
-    assert snap["status"] == "playing"
-    assert "crane" not in str(fs.docs)  # secret never stored in plain text
-
-    a.submit_guess(code, "p1", "mount")
-    a.submit_guess(code, "p1", "mount")     # ignored: already pending
-    snap = b.score_pending(code, "p2", "pluot")
-    assert snap["feedback_p1"] == ["XYGXG"] and snap["turn"] == "p2"
-
-    b.submit_guess(code, "p2", "crane")
-    snap = a.score_pending(code, "p1", "crane")
-    assert snap["status"] == "finished" and snap["winner"] == "p2"
-
-    a.reveal(code, "p1", salt_a, "crane")
-    b.reveal(code, "p2", salt_b, "pluot")
-    snap = a.fetch(code)
-    assert online.verify_opponent(snap, "p1") == ("pluot", True)
-    assert online.verify_opponent(snap, "p2") == ("crane", True)
+def test_challenge_roundtrip_all_words():
+    for lang in ("en", "he"):
+        for n in (4, 5, 6):
+            for w in words.answers(lang, n)[::50]:
+                code = challenge.encode(w, lang)
+                assert len(code) == 10 and code.isdigit()
+                assert challenge.decode(code) == (lang, w)
 
 
-def test_online_detects_lying_opponent():
-    fs = FakeFirestore()
-    a, b = online.OnlineClient(fs), online.OnlineClient(fs)
-    code = a.create_game("en", 5)
-    sa, ca = online.make_commitment("crane")
-    sb, cb = online.make_commitment("pluot")
-    a.commit_word(code, "p1", ca)
-    b.join_game(code)
-    b.commit_word(code, "p2", cb)
-    a.submit_guess(code, "p1", "mount")
-    b.score_pending(code, "p2", "zzzzz")   # b scores against a different word
-    a.forfeit(code, "p1")
-    b.reveal(code, "p2", sb, "pluot")
-    assert online.verify_opponent(a.fetch(code), "p1") == ("pluot", False)
+def test_challenge_hides_word_and_varies():
+    a, b = challenge.encode("crane", "en"), challenge.encode("crank", "en")
+    assert a[:6] != b[:6]          # similar words don't give similar codes
 
 
-def test_online_conflict_retry():
-    fs = FakeFirestore()
-    c = online.OnlineClient(fs)
-    code = c.create_game("en", 5)
-    real = fs.request
-    calls = {"n": 0}
-
-    def flaky(method, code_, body=None, params=None):
-        if method == "PATCH" and calls["n"] == 0:
-            calls["n"] += 1
-            real("PATCH", code_, {"fields": {"joined_p2": {"booleanValue": False}}},
-                 [("updateMask.fieldPaths", "joined_p2")])  # someone else wrote first
-        return real(method, code_, body, params)
-
-    fs.request = flaky
-    snap = c.commit_word(code, "p1", "abc")
-    assert snap["commit_p1"] == "abc"
+def test_challenge_catches_typos():
+    code = challenge.encode("crane", "en")
+    for i in range(10):
+        wrong = code[:i] + str((int(code[i]) + 1) % 10) + code[i + 1:]
+        with pytest.raises(challenge.ChallengeError):
+            challenge.decode(wrong)
+    with pytest.raises(challenge.ChallengeError):
+        challenge.decode("123")
 
 
-def test_online_draw_after_all_attempts():
-    fs = FakeFirestore()
-    a, b = online.OnlineClient(fs), online.OnlineClient(fs)
-    code = a.create_game("en", 5)
-    a.commit_word(code, "p1", "x")
-    b.join_game(code)
-    b.commit_word(code, "p2", "y")
-    for _ in range(online.MAX_ATTEMPTS):
-        a.submit_guess(code, "p1", "mount")
-        b.score_pending(code, "p2", "pluot")
-        b.submit_guess(code, "p2", "mount")
-        snap = a.score_pending(code, "p1", "crane")
-    assert snap["status"] == "finished" and snap["winner"] == "draw"
+def test_challenge_hebrew_final_letters_and_paste():
+    code = challenge.encode("שלומ", "he")
+    assert challenge.decode(code) == ("he", "שלום")
+    msg = f"Can you guess my word? Code: {challenge.format_code(code)} good luck"
+    assert challenge.find_code(msg) == code
 
 
 # ------------------------------------------------------------------ round ---

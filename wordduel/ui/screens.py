@@ -1,18 +1,17 @@
-import threading
-
 from kivy.animation import Animation
 from kivy.app import App
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock
+from kivy.core.clipboard import Clipboard
 from kivy.graphics import Color, Rectangle, RoundedRectangle
 from kivy.metrics import dp
 from kivy.properties import BooleanProperty, ListProperty, NumericProperty, StringProperty
 from kivy.uix.screenmanager import Screen
 from kivy.uix.widget import Widget
 
-from ..core import online, words
+from ..core import challenge, words
 from ..core.game import Round, share_text
-from ..core.rules import (MAX_ATTEMPTS, decode_feedback, has_unique_letters, is_word_shaped,
-                          letter_states, normalize_word)
+from ..core.rules import (MAX_ATTEMPTS, has_unique_letters, is_word_shaped, letter_states,
+                          normalize_word)
 from . import theme
 from .platform_services import share
 from .widgets import Tile, _text_texture
@@ -188,14 +187,14 @@ class HomeScreen(BaseScreen):
         elif mode == "pass":
             a.pass_state = {"setter": 1, "score": [0, 0]}
             a.go("setter").start("pass")
-        elif mode == "online":
-            a.go("online_menu")
+        elif mode == "challenge":
+            a.go("challenge_menu")
 
 
 # ------------------------------------------------------------------ game ---
 
 class GameScreen(BaseScreen):
-    """Daily, Free Play and the guessing half of Pass & Play."""
+    """Daily, Free Play, friend challenges and the guessing half of Pass & Play."""
     title = StringProperty("")
     subtitle = StringProperty("")
     hints_left = NumericProperty(0)
@@ -210,10 +209,11 @@ class GameScreen(BaseScreen):
     r_can_share = BooleanProperty(False)
     r_stats = ListProperty([])
 
-    def start(self, mode, secret=None):
+    def start(self, mode, secret=None, language=None, code=""):
         a = app()
         self.mode = mode
-        self.lang = a.lang
+        self.lang = language or a.lang
+        self.code = code
         self.busy = False
         self.number = None
         self.finished = False
@@ -231,6 +231,9 @@ class GameScreen(BaseScreen):
             secret = words.random_answer(self.lang, a.settings["word_length"])
             self.title = T("solo")
             self.subtitle = T("solo_sub", n=len(secret)).split(",")[0]
+        elif mode == "challenge":
+            self.title = T("challenge_play")
+            self.subtitle = code
         else:
             guesser = 3 - a.pass_state["setter"]
             self.title = T("guesser", name=T(f"player_{guesser}"))
@@ -339,7 +342,7 @@ class GameScreen(BaseScreen):
         self.r_title = T(f"win_{attempts}") if r.won else T("lose")
         self.r_sub = T("the_word_was", word=r.secret.upper())
         self.r_extra = ""
-        self.r_can_share = self.mode in ("daily", "solo")
+        self.r_can_share = self.mode in ("daily", "solo", "challenge")
         self.r_stats = []
         if self.mode in ("daily", "solo"):
             if record:
@@ -355,6 +358,8 @@ class GameScreen(BaseScreen):
             self._tick_countdown()
         elif self.mode == "solo":
             self.r_primary = T("play_again")
+        elif self.mode == "challenge":
+            self.r_primary = T("send_one_back")
         else:
             if record:
                 guesser = 3 - a.pass_state["setter"]
@@ -391,15 +396,19 @@ class GameScreen(BaseScreen):
             a.back()
         elif self.mode == "solo":
             self.start("solo")
+        elif self.mode == "challenge":
+            a.go("setter").start("challenge")
         else:
             a.pass_state["setter"] = 3 - a.pass_state["setter"]
             a.go("setter").start("pass")
 
     def do_share(self):
         r = self.round
-        title = T("daily") if self.mode == "daily" else T("solo")
+        title = {"daily": T("daily"), "solo": T("solo")}.get(self.mode, T("challenge_play"))
         text = share_text(f"{T('share_title')} · {title}", self.number, r.history, r.won,
                           r.max_attempts, r.hard, len(r.hints), self.lang)
+        if self.mode == "challenge":
+            text = T("challenge_result_intro", code=self.code) + "\n" + text
         if not share(text, T("share")):
             app().toast(T("copied"))
 
@@ -407,84 +416,27 @@ class GameScreen(BaseScreen):
 # ---------------------------------------------------------- secret setter ---
 
 class SetterScreen(BaseScreen):
-    """Pick a secret word: Pass & Play and both sides of an Online Duel."""
+    """Pick a secret word, for Pass & Play or for a friend challenge."""
     title = StringProperty("")
-    code = StringProperty("")
-    code_status = StringProperty("")
     peek = BooleanProperty(False)
-    online_mode = BooleanProperty(False)
-    working = BooleanProperty(False)
     length = NumericProperty(5)
 
-    def start(self, mode, language=None, length=None, code="", role="p1"):
+    def start(self, mode):
         a = app()
-        self.mode = mode           # pass | online
-        self.role = role
-        self.lang = language or a.lang
-        self.length = length or a.settings["word_length"]
+        self.mode = mode           # pass | challenge
+        self.lang = a.lang
+        self.length = a.settings["word_length"]
         self.word = ""
         self.peek = False
-        self.working = False
-        self.online_mode = mode == "online"
-        self.code = code
-        self.code_status = ""
-        self._stop_listen = None
         if mode == "pass":
             self.title = T(f"player_{a.pass_state['setter']}")
         else:
-            self.title = T("online_title")
+            self.title = T("challenge_create")
         self.ids.board.reset(1, self.length, self.lang == "he")
         self.ids.keyboard.language = self.lang
         self.ids.keyboard.set_states({})
         self._show()
-        if self.online_mode and role == "p1" and not code:
-            self.code_status = T("connecting")
-            threading.Thread(target=self._create_game, daemon=True).start()
-        elif self.online_mode and role == "p2":
-            self.code_status = T("friend_joined")
 
-    # -- online game creation
-    def _create_game(self):
-        try:
-            code = online.OnlineClient().create_game(self.lang, self.length)
-        except Exception:
-            self._create_failed()
-            return
-        self._created(code)
-
-    @mainthread
-    def _create_failed(self):
-        app().toast(T("net_error"), 3)
-        app().back("online_menu")
-
-    @mainthread
-    def _created(self, code):
-        if app().sm.current != "setter":
-            return
-        self.code = code
-        self.code_status = T("waiting_friend")
-        self._stop_listen = online.OnlineClient().listen(code, self._on_snap)
-
-    def _on_snap(self, snap):
-        if snap.get("joined_p2"):
-            self._joined()
-
-    @mainthread
-    def _joined(self):
-        if self.code_status != T("friend_joined"):
-            self.code_status = T("friend_joined")
-            app().sfx("pop")
-            app().buzz(40)
-        if self._stop_listen:
-            self._stop_listen()
-            self._stop_listen = None
-
-    def share_code(self):
-        text = f"{T('share_title')}: {T('join_game')} {self.code}"
-        if not share(text, T("share")):
-            app().toast(T("copied"))
-
-    # -- typing
     def _show(self):
         shown = self.word if self.peek else "•" * len(self.word)
         self.ids.board.show_typed(0, shown)
@@ -494,7 +446,7 @@ class SetterScreen(BaseScreen):
         self._show()
 
     def key_letter(self, letter):
-        if self.working or not is_word_shaped(letter, self.lang) or len(self.word) >= self.length:
+        if not is_word_shaped(letter, self.lang) or len(self.word) >= self.length:
             return
         self.word += letter
         app().sfx("tap")
@@ -502,7 +454,7 @@ class SetterScreen(BaseScreen):
         self._show()
 
     def key_delete(self):
-        if self.word and not self.working:
+        if self.word:
             self.word = self.word[:-1]
             app().sfx("delete")
             self._show()
@@ -517,8 +469,6 @@ class SetterScreen(BaseScreen):
         self.ids.board.shake_row(0)
 
     def lock_in(self):
-        if self.working:
-            return
         word = normalize_word(self.word, self.lang)
         if len(word) < self.length:
             return self._reject("not_enough")
@@ -529,50 +479,11 @@ class SetterScreen(BaseScreen):
         app().sfx("pop")
         if self.mode == "pass":
             app().go("pass_phone").start(word)
-            return
-        if not self.code:
-            app().toast(T("connecting"))
-            return
-        self.working = True
-        salt, commit = online.make_commitment(word)
-        threading.Thread(target=self._commit, args=(word, salt, commit), daemon=True).start()
-
-    def _commit(self, word, salt, commit):
-        try:
-            online.OnlineClient().commit_word(self.code, self.role, commit)
-        except Exception:
-            self._commit_failed()
-            return
-        self._committed(word, salt)
-
-    @mainthread
-    def _commit_failed(self):
-        self.working = False
-        app().toast(T("net_error"), 3)
-
-    @mainthread
-    def _committed(self, word, salt):
-        if self._stop_listen:
-            self._stop_listen()
-            self._stop_listen = None
-        app().go("online_game").start(self.code, self.role, word, salt, self.lang, self.length)
+        else:
+            app().go("challenge_code").start(challenge.encode(word, self.lang))
 
     def go_back(self):
-        if self._stop_listen:
-            self._stop_listen()
-            self._stop_listen = None
-        if self.mode == "online" and self.code:
-            code, role = self.code, self.role
-            threading.Thread(target=lambda: _quiet(online.OnlineClient().forfeit, code, role),
-                             daemon=True).start()
-        app().back("online_menu" if self.mode == "online" else "home")
-
-
-def _quiet(fn, *args):
-    try:
-        fn(*args)
-    except Exception:
-        pass
+        app().back("challenge_menu" if self.mode == "challenge" else "home")
 
 
 class PassPhoneScreen(BaseScreen):
@@ -586,282 +497,82 @@ class PassPhoneScreen(BaseScreen):
         app().go("game").start("pass", secret=self.secret)
 
 
-# ---------------------------------------------------------------- online ---
+# ------------------------------------------------------------- challenges ---
 
-class OnlineMenuScreen(BaseScreen):
+class ChallengeMenuScreen(BaseScreen):
     def create(self):
-        app().go("setter").start("online", role="p1")
+        app().go("setter").start("challenge")
 
-    def join(self):
-        app().go("join").start()
+    def solve(self):
+        app().go("solve").start()
 
 
-class JoinScreen(BaseScreen):
+class ChallengeCodeScreen(BaseScreen):
+    """Shows the code for a challenge the player just made."""
     code = StringProperty("")
-    working = BooleanProperty(False)
+    pretty = StringProperty("")
+
+    def start(self, code):
+        self.code = code
+        self.pretty = challenge.format_code(code)
+
+    def share_code(self):
+        if not share(T("challenge_message", code=self.pretty), T("share")):
+            app().toast(T("copied"))
+
+    def copy_code(self):
+        Clipboard.copy(self.pretty)
+        app().toast(T("copied"))
+
+    def go_back(self):
+        app().back("challenge_menu")
+
+
+class SolveScreen(BaseScreen):
+    """Type or paste a friend's code, then play their word."""
+    code = StringProperty("")
 
     def start(self):
         self.code = ""
-        self.working = False
 
     def go_back(self):
-        app().back("online_menu")
+        app().back("challenge_menu")
 
     def key_letter(self, ch):
-        if ch.isdigit() and len(self.code) < online.CODE_DIGITS and not self.working:
+        if ch.isdigit() and len(self.code) < challenge.CODE_LEN:
             self.code += ch
             app().sfx("tap")
 
     def key_delete(self):
-        if self.code and not self.working:
+        if self.code:
             self.code = self.code[:-1]
             app().sfx("delete")
 
     def key_enter(self):
-        self.join()
+        self.play()
 
-    def join(self):
-        if self.working:
-            return
-        if len(self.code) != online.CODE_DIGITS:
-            app().toast(T("enter_code"))
-            app().sfx("error")
-            return
-        self.working = True
-        code = self.code
-        threading.Thread(target=self._join, args=(code,), daemon=True).start()
-
-    def _join(self, code):
-        try:
-            snap = online.OnlineClient().join_game(code)
-            self._joined(code, snap.get("language", "en"), snap.get("length", 5))
-        except online.GameError as e:
-            self._failed(e.key)
-        except Exception:
-            self._failed("net_error")
-
-    @mainthread
-    def _failed(self, key):
-        self.working = False
-        app().toast(T(key), 3)
-        app().sfx("error")
-
-    @mainthread
-    def _joined(self, code, language, length):
-        self.working = False
-        app().go("setter").start("online", language=language, length=length, code=code, role="p2")
-
-
-class OnlineGameScreen(BaseScreen):
-    status = StringProperty("")
-    code = StringProperty("")
-    panel_up = BooleanProperty(False)
-    r_title = StringProperty("")
-    r_sub = StringProperty("")
-    r_extra = StringProperty("")
-    snap = None
-    client = None
-    sending = False
-    finished = False
-
-    def start(self, code, role, word, salt, language, length):
-        self.code, self.role, self.word, self.salt = code, role, word, salt
-        self.lang, self.length = language, length
-        self.client = online.OnlineClient()
-        self.snap = None
-        self.current = ""
-        self.rendered = 0
-        self.sending = False
-        self.scoring = False
-        self.revealing = False
-        self.finished = False
-        self._leave_armed = False
-        self.ids.board.reset(MAX_ATTEMPTS, length, language == "he")
-        self.ids.mini.reset(MAX_ATTEMPTS, length, language == "he")
-        self.ids.keyboard.language = language
-        self.ids.keyboard.set_states({})
-        self.status = T("waiting_word")
-        self._hide_panel(instant=True)
-        self._stop = self.client.listen(code, self._on_snap, self._on_error)
-
-    # -- network callbacks (background thread -> main thread)
-    def _on_snap(self, snap):
-        Clock.schedule_once(lambda dt: self._process(snap))
-
-    def _on_error(self, _err):
-        Clock.schedule_once(lambda dt: app().toast(T("net_retry")))
-
-    def _bg(self, fn, *args, done=None):
-        def run():
-            try:
-                fn(*args)
-            except Exception:
-                Clock.schedule_once(lambda dt: app().toast(T("net_retry")))
-            finally:
-                if done:
-                    Clock.schedule_once(lambda dt: done())
-        threading.Thread(target=run, daemon=True).start()
-
-    def _process(self, snap):
-        if getattr(self, "client", None) is None or snap.get("code") != self.code:
-            return
-        self.snap = snap
-        me, opp = self.role, online.other(self.role)
-        my_guesses = snap.get(f"guesses_{me}", [])
-        my_fb = snap.get(f"feedback_{me}", [])
-        their_guesses = snap.get(f"guesses_{opp}", [])
-        their_fb = snap.get(f"feedback_{opp}", [])
-
-        # Opponent's mini board: colors only.
-        for i, fb in enumerate(their_fb[:MAX_ATTEMPTS]):
-            self.ids.mini.set_row(i, [""] * self.length, decode_feedback(fb))
-
-        # Reveal any newly scored rows of mine.
-        history = [(g, decode_feedback(f)) for g, f in zip(my_guesses, my_fb)]
-        for i in range(self.rendered, min(len(history), MAX_ATTEMPTS)):
-            g, fb = history[i]
-            self.ids.board.reveal_row(i, g, fb)
-            self.current = ""
-        if len(history) > self.rendered:
-            self.rendered = len(history)
-            delay = self.ids.board.reveal_duration()
-            Clock.schedule_once(lambda dt: self.ids.keyboard.set_states(letter_states(history)), delay)
-
-        status = snap.get("status")
-        if status == "waiting":
-            self.status = T("waiting_word")
-        elif status == "playing":
-            if len(their_guesses) > len(their_fb) and not self.scoring:
-                self.scoring = True
-                self._bg(self.client.score_pending, self.code, me, self.word,
-                         done=lambda: setattr(self, "scoring", False))
-            mine_pending = len(my_guesses) > len(my_fb)
-            if mine_pending:
-                self.status = T("scoring")
-            elif snap.get("turn") == me:
-                if self.status != T("your_turn"):
-                    app().sfx("pop")
-                    app().buzz(30)
-                self.status = T("your_turn")
-            else:
-                self.status = T("their_turn")
-            if not mine_pending and len(my_guesses) < MAX_ATTEMPTS:
-                self.ids.board.show_typed(len(my_guesses), self.current)
-        elif status == "finished":
-            self._finished(snap)
-
-    def _finished(self, snap):
-        me = self.role
-        if not snap.get(f"reveal_{me}") and not self.revealing:
-            self.revealing = True
-            self._bg(self.client.reveal, self.code, me, self.salt, self.word,
-                     done=lambda: setattr(self, "revealing", False))
-        winner = snap.get("winner")
-        if snap.get("ended_by") == "forfeit" and winner == me:
-            title = T("forfeit_win")
-        elif winner == me:
-            title = T("you_won")
-        elif winner == "draw":
-            title = T("draw")
+    def paste(self):
+        found = challenge.find_code(Clipboard.paste() or "")
+        if found:
+            self.code = found
+            app().sfx("pop")
         else:
-            title = T("you_lost")
-        word, honest = online.verify_opponent(snap, me)
-        self.r_title = title
-        self.r_sub = T("their_word", word=word.upper()) if word else T("no_reveal")
-        self.r_extra = T("cheat_warning") if honest is False else ""
-        self.status = title
-        if not self.finished:
-            self.finished = True
-            delay = self.ids.board.reveal_duration()
-            if winner == me:
-                Clock.schedule_once(lambda dt: (app().sfx("win"), app().confetti.burst()), delay)
-            else:
-                Clock.schedule_once(lambda dt: app().sfx("lose"), delay)
-            Clock.schedule_once(lambda dt: self._show_panel(), delay + 0.6)
-        if word and snap.get(f"reveal_{me}"):
-            self._stop_listening()
+            app().toast(T("no_code_in_clipboard"))
+            app().sfx("error")
 
-    # -- input
-    def _can_type(self):
-        s = self.snap
-        if not s or s.get("status") != "playing" or s.get("turn") != self.role or self.sending:
-            return False
-        return len(s.get(f"guesses_{self.role}", [])) == len(s.get(f"feedback_{self.role}", []))
-
-    def _row(self):
-        return len(self.snap.get(f"guesses_{self.role}", [])) if self.snap else 0
-
-    def key_letter(self, letter):
-        if not self._can_type() or not is_word_shaped(letter, self.lang):
-            return
-        if len(self.current) < self.length:
-            self.current += letter
-            app().sfx("tap")
-            app().buzz(8)
-            self.ids.board.show_typed(self._row(), self.current)
-
-    def key_delete(self):
-        if self._can_type() and self.current:
-            self.current = self.current[:-1]
-            app().sfx("delete")
-            self.ids.board.show_typed(self._row(), self.current)
-
-    def key_enter(self):
-        if not self._can_type():
-            if self.snap and self.snap.get("status") == "playing":
-                app().toast(self.status)
-            return
-        guess = normalize_word(self.current, self.lang)
-        mine = self.snap.get(f"guesses_{self.role}", [])
-        problem = None
-        if len(guess) < self.length:
-            problem = "not_enough"
-        elif not words.is_valid(guess, self.lang, self.length):
-            problem = "not_valid"
-        elif guess in mine:
-            problem = "already_guessed"
-        if problem:
-            app().toast(T(problem))
+    def play(self):
+        try:
+            lang, word = challenge.decode(self.code)
+            if not words.is_valid(word, lang, len(word)):
+                raise challenge.ChallengeError("code_invalid")
+        except challenge.ChallengeError as e:
+            app().toast(T(e.key), 2.5)
             app().sfx("error")
             app().buzz(70)
-            self.ids.board.shake_row(self._row())
             return
-        self.sending = True
-        self.status = T("scoring")
-        self._bg(self.client.submit_guess, self.code, self.role, guess,
-                 done=lambda: setattr(self, "sending", False))
-
-    # -- leaving
-    def _stop_listening(self):
-        if getattr(self, "_stop", None):
-            self._stop()
-            self._stop = None
-
-    def go_back(self):
-        if not self.finished and not self._leave_armed:
-            self._leave_armed = True
-            app().toast(T("leave_game") + "?")
-            Clock.schedule_once(lambda dt: setattr(self, "_leave_armed", False), 2.5)
-            return
-        if not self.finished:
-            self._bg(self.client.forfeit, self.code, self.role)
-        self._stop_listening()
-        self.client = None
-        app().back()
-
-    def _show_panel(self):
-        self.panel_up = True
-        Animation(y=self.y, d=.45, t="out_back").start(self.ids.panel)
-
-    def _hide_panel(self, instant=False):
-        self.panel_up = False
-        panel = self.ids.panel
-        Animation.cancel_all(panel)
-        panel.y = self.y - panel.height - dp(40)
-
-    def to_menu(self):
-        self.finished = True
-        self.go_back()
+        app().sfx("pop")
+        app().go("game").start("challenge", secret=word, language=lang,
+                               code=challenge.format_code(self.code))
 
 
 # ------------------------------------------------------ stats / settings ---
@@ -908,9 +619,9 @@ SCREENS = {
     "game": GameScreen,
     "setter": SetterScreen,
     "pass_phone": PassPhoneScreen,
-    "online_menu": OnlineMenuScreen,
-    "join": JoinScreen,
-    "online_game": OnlineGameScreen,
+    "challenge_menu": ChallengeMenuScreen,
+    "challenge_code": ChallengeCodeScreen,
+    "solve": SolveScreen,
     "stats": StatsScreen,
     "settings": SettingsScreen,
     "rules": RulesScreen,

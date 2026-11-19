@@ -11,7 +11,7 @@ PRESENT = "present"   # right letter, wrong spot
 ABSENT = "absent"     # not in the word
 _RANK = {None: 0, ABSENT: 1, PRESENT: 2, CORRECT: 3}
 
-# Compact one-letter codes, used for online play and share text.
+# Compact one-letter codes, used for share text.
 CODE = {CORRECT: "G", PRESENT: "Y", ABSENT: "X"}
 DECODE = {v: k for k, v in CODE.items()}
 
