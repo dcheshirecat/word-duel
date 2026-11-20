@@ -246,21 +246,22 @@ class ChunkyButton(ButtonBehavior, MirrorMixin, BoxLayout):
     edge = ColorProperty(None, allownone=True)
     depth = NumericProperty(dp(6))
     radius = NumericProperty(dp(20))
-    press = NumericProperty(0)
+    # Not called `press`: Kivy would treat on_press() as its change handler.
+    squish = NumericProperty(0)
     sound = StringProperty("tap")
     pad_x = NumericProperty(dp(14))
     pad_y = NumericProperty(dp(6))
 
     def on_press(self):
-        Animation.cancel_all(self, "press")
-        Animation(press=1, d=0.05).start(self)
+        Animation.cancel_all(self, "squish")
+        Animation(squish=1, d=0.05).start(self)
         app = _app()
         if app and self.sound:
             app.sfx(self.sound)
 
     def on_release(self):
-        Animation.cancel_all(self, "press")
-        Animation(press=0, d=0.3, t="out_back").start(self)
+        Animation.cancel_all(self, "squish")
+        Animation(squish=0, d=0.3, t="out_back").start(self)
 
 
 class IconButton(ButtonBehavior, Icon):

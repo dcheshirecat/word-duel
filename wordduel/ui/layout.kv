@@ -4,30 +4,30 @@
 # ------------------------------------------------------------ building blocks
 
 <ChunkyButton>:
-    padding: [self.pad_x, self.depth * self.press + self.pad_y, self.pad_x, self.depth * (1 - self.press) + self.pad_y]
+    padding: [self.pad_x, self.depth * self.squish + self.pad_y, self.pad_x, self.depth * (1 - self.squish) + self.pad_y]
     canvas.before:
         Color:
             rgba: 0, 0, 0, .16
         RoundedRectangle:
             pos: self.x, self.y - dp(3)
-            size: self.width, self.height - self.depth * self.press
+            size: self.width, self.height - self.depth * self.squish
             radius: [self.radius]
         Color:
             rgba: self.edge or theme.darker(self.face, .24)
         RoundedRectangle:
             pos: self.pos
-            size: self.width, self.height - self.depth * self.press
+            size: self.width, self.height - self.depth * self.squish
             radius: [self.radius]
         Color:
             rgba: self.face
         RoundedRectangle:
-            pos: self.x, self.y + self.depth * (1 - self.press)
+            pos: self.x, self.y + self.depth * (1 - self.squish)
             size: self.width, self.height - self.depth
             radius: [self.radius]
         Color:
             rgba: 1, 1, 1, .25
         RoundedRectangle:
-            pos: self.x + self.radius * .7, self.top - self.depth * self.press - (self.height - self.depth) * .2
+            pos: self.x + self.radius * .7, self.top - self.depth * self.squish - (self.height - self.depth) * .2
             size: max(self.width - self.radius * 1.4, 0), max((self.height - self.depth) * .1, dp(3))
             radius: [dp(3)]
 

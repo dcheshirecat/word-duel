@@ -35,6 +35,7 @@ python -m pytest tests   # core tests, no display needed
 ```
 
 To regenerate data: `python tools/build_wordlists.py` and `python tools/make_sounds.py`.
+To tap through every screen with real touch events (catches touch/animation bugs): `xvfb-run python tools/tap_test.py en` (or `he`).
 For screenshots of every screen: `xvfb-run python tools/screenshots.py OUT_DIR en` (or `he`).
 
 ## Building the APK
