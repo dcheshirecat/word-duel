@@ -156,7 +156,7 @@ def script():
     yield .5, lambda: None
     yield from typing(screen().round.secret)
     yield .2, lambda: tap_special("enter")
-    yield 4.0, lambda: tap_text("share")
+    yield 6.0, lambda: tap_text("share")
     yield .4, lambda: tap_text("menu")
     yield .4, lambda: expect("home")
     # Pass & Play
@@ -170,7 +170,7 @@ def script():
     yield .4, lambda: None
     yield from typing(w5[11])
     yield .2, lambda: tap_special("enter")
-    yield 4.0, lambda: tap_text("rematch")
+    yield 6.0, lambda: tap_text("rematch")
     yield .4, lambda: expect("setter")
     yield .2, lambda: tap_icon("back")
     # Challenge: create, copy, solve

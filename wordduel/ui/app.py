@@ -6,6 +6,7 @@ from kivy.core.window import Window
 from kivy.lang import Builder
 from kivy.logger import Logger
 from kivy.metrics import Metrics
+from kivy.utils import platform
 from kivy.properties import DictProperty, StringProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import NoTransition, ScreenManager
@@ -57,6 +58,7 @@ class WordDuelApp(App):
         Logger.info(f"WordDuel: built, window {Window.size}, density {Metrics.density}")
         self.sm.bind(current=self._log_screen)
         Clock.schedule_interval(self._check_gl, 0)
+        Clock.schedule_interval(self._check_window_size, 0.5)
         Clock.schedule_once(lambda dt: self._log_screen(self.sm, self.sm.current), 1)
         Window.bind(on_resize=lambda _w, w, h: Logger.info(f"WordDuel: window resized {w}x{h}"))
         Window.bind(on_keyboard=self._on_keyboard, on_textinput=self._on_textinput)
@@ -128,6 +130,31 @@ class WordDuelApp(App):
 
     def on_resume(self):
         Logger.info("WordDuel: on_resume")
+        Clock.schedule_once(self._check_window_size, 0.2)
+        Clock.schedule_once(self._check_window_size, 1.0)
+
+    def _check_window_size(self, _dt=None):
+        """Re-sync Kivy with the real drawing surface.
+
+        Seen on a phone: after a while the surface grew but Kivy never got a
+        resize event, so the app drew into the bottom-left ~83% of the screen
+        while touches were mapped to the full screen (taps hit the wrong
+        widgets). If the sizes disagree, apply the resize Kivy missed.
+        """
+        try:
+            surface = tuple(int(v) for v in Window._win._get_gl_size())
+            sdl_size = tuple(int(v) for v in Window._win.window_size)
+        except Exception:
+            return
+        current = tuple(int(v) for v in Window.size)
+        target = surface if platform == "android" else sdl_size
+        if min(target) <= 0 or target == current:
+            return
+        Logger.warning(f"WordDuel: window out of sync: kivy {current}, sdl {sdl_size}, "
+                       f"surface {surface}; resizing to {target}")
+        Window._size = target
+        Window._do_resize(0)
+        Window.canvas.ask_update()
 
     # -- hardware / desktop keys
     def _current(self):
