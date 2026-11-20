@@ -3,6 +3,8 @@ import os
 from kivy.app import App
 from kivy.core.window import Window
 from kivy.lang import Builder
+from kivy.logger import Logger
+from kivy.metrics import Metrics
 from kivy.properties import DictProperty, StringProperty
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import ScreenManager, SlideTransition
@@ -50,6 +52,9 @@ class WordDuelApp(App):
         root.add_widget(self.toaster)
 
         Window.clearcolor = theme.BG_TOP
+        Logger.info(f"WordDuel: built, window {Window.size}, density {Metrics.density}")
+        self.sm.bind(current=lambda _sm, name: Logger.info(f"WordDuel: screen -> {name}"))
+        Window.bind(on_resize=lambda _w, w, h: Logger.info(f"WordDuel: window resized {w}x{h}"))
         Window.bind(on_keyboard=self._on_keyboard, on_textinput=self._on_textinput)
         return root
 
@@ -89,6 +94,13 @@ class WordDuelApp(App):
         self.settings[key] = value
         if key == "colorblind":
             self.palette = theme.PALETTES[bool(value)]
+
+    def on_pause(self):
+        Logger.info("WordDuel: on_pause")
+        return True
+
+    def on_resume(self):
+        Logger.info("WordDuel: on_resume")
 
     # -- hardware / desktop keys
     def _current(self):

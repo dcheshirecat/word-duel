@@ -9,7 +9,6 @@ from kivy.clock import Clock
 from kivy.core.text import Label as CoreLabel
 from kivy.graphics import (Color, Ellipse, Line, PopMatrix, PushMatrix, Rectangle, Rotate,
                            RoundedRectangle, Scale, Translate)
-from kivy.graphics.texture import Texture
 from kivy.metrics import dp
 from kivy.properties import (BooleanProperty, ColorProperty, ListProperty, NumericProperty,
                              ObjectProperty, OptionProperty, StringProperty)
@@ -649,50 +648,62 @@ class Keypad(GridLayout):
 
 # ------------------------------------------------------------ background ---
 
-def _gradient_texture(stops, n=128):
-    tex = Texture.create(size=(1, n), colorfmt="rgba")
-    buf = bytearray()
-    for i in range(n):
-        t = i / (n - 1)  # 0 = bottom
-        seg = min(int(t * (len(stops) - 1)), len(stops) - 2)
-        local = t * (len(stops) - 1) - seg
-        a, b = stops[seg], stops[seg + 1]
-        buf += bytes(int(255 * (a[k] + (b[k] - a[k]) * local)) for k in range(4))
-    tex.blit_buffer(bytes(buf), colorfmt="rgba", bufferfmt="ubyte")
-    tex.wrap = "clamp_to_edge"
-    return tex
+def _lerp_stops(stops, t):
+    seg = min(int(t * (len(stops) - 1)), len(stops) - 2)
+    local = t * (len(stops) - 1) - seg
+    a, b = stops[seg], stops[seg + 1]
+    return [a[k] + (b[k] - a[k]) * local for k in range(4)]
 
 
 class Background(Widget):
-    """Candy gradient with slowly drifting translucent bubbles."""
+    """Candy gradient with slowly drifting translucent bubbles.
+
+    The gradient is drawn as thin colored strips rather than a texture, so it
+    survives Android dropping and rebuilding the GL context. It is only
+    rebuilt when the size changes; each frame just moves the bubbles.
+    """
+    STRIPS = 48
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.tex = _gradient_texture([theme.BG_BOTTOM, theme.BG_MID, theme.BG_TOP])
         rnd = random.Random(7)
         self.blobs = [dict(x=rnd.random(), y=rnd.random(), r=rnd.uniform(.08, .26),
                            sp=rnd.uniform(.15, .4), ph=rnd.uniform(0, 6.28),
                            a=rnd.uniform(.05, .12)) for _ in range(9)]
         self.t = 0.0
-        self.bind(pos=self.draw, size=self.draw)
+        stops = [theme.BG_BOTTOM, theme.BG_MID, theme.BG_TOP]
+        self.strips = []
+        with self.canvas.before:
+            for i in range(self.STRIPS):
+                Color(rgba=_lerp_stops(stops, (i + .5) / self.STRIPS))
+                self.strips.append(Rectangle())
+        self.ellipses = []
+        with self.canvas:
+            for b in self.blobs:
+                Color(1, 1, 1, b["a"])
+                self.ellipses.append(Ellipse())
+        self.bind(pos=self.layout, size=self.layout)
         Clock.schedule_interval(self.tick, 1 / 30)
+
+    def layout(self, *_):
+        h = self.height / self.STRIPS
+        for i, rect in enumerate(self.strips):
+            rect.pos = (self.x, self.y + i * h)
+            rect.size = (self.width, h + 1)
+        self.move_bubbles()
 
     def tick(self, dt):
         self.t += dt
-        self.draw()
+        self.move_bubbles()
 
-    def draw(self, *_):
-        self.canvas.clear()
+    def move_bubbles(self):
         w, h = self.size
-        with self.canvas:
-            Color(1, 1, 1, 1)
-            Rectangle(texture=self.tex, pos=self.pos, size=self.size)
-            for b in self.blobs:
-                r = b["r"] * w
-                x = self.x + b["x"] * w + math.sin(self.t * b["sp"] + b["ph"]) * w * .06
-                y = self.y + ((b["y"] + self.t * b["sp"] * .012) % 1.2 - .1) * h
-                Color(1, 1, 1, b["a"])
-                Ellipse(pos=(x - r, y - r), size=(2 * r, 2 * r))
+        for b, e in zip(self.blobs, self.ellipses):
+            r = b["r"] * w
+            x = self.x + b["x"] * w + math.sin(self.t * b["sp"] + b["ph"]) * w * .06
+            y = self.y + ((b["y"] + self.t * b["sp"] * .012) % 1.2 - .1) * h
+            e.pos = (x - r, y - r)
+            e.size = (2 * r, 2 * r)
 
 
 class Confetti(Widget):

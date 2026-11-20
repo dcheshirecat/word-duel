@@ -33,7 +33,9 @@ def show_startup_crash(report):
 
 if __name__ == "__main__":
     try:
+        crash.capture_logs()
         crash.install_kivy_handler()
+        crash.install_long_press_share()
         from kivy.clock import Clock
         from wordduel.ui.app import WordDuelApp
         if previous_crash:

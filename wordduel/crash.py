@@ -5,7 +5,9 @@
 * Hard crashes (the process dies, e.g. in native code) are recorded by
   faulthandler; the report is shown the next time the app starts.
 """
+import collections
 import faulthandler
+import logging
 import os
 import platform
 import sys
@@ -46,6 +48,62 @@ def save_report(text):
             pass
 
 
+# ------------------------------------------------------------ log capture ---
+
+LOG = collections.deque(maxlen=600)
+
+
+class _LogHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            LOG.append(f"[{record.levelname[:4]}] {record.getMessage()}")
+        except Exception:
+            pass
+
+
+def capture_logs():
+    """Keep recent Kivy log lines in memory (Kivy's log already includes
+    anything written to stderr, so we don't wrap the streams ourselves)."""
+    from kivy.logger import Logger
+    Logger.addHandler(_LogHandler())
+
+
+def log_text():
+    return "\n".join(LOG)
+
+
+def install_long_press_share(seconds=3.0):
+    """Holding a finger still anywhere for `seconds` shares the app log."""
+    from kivy.clock import Clock
+    from kivy.core.window import Window
+    from kivy.logger import Logger
+
+    state = {"ev": None, "pos": None}
+
+    def fire(_dt):
+        Logger.info("WordDuel: long-press -> sharing log")
+        share_natively(_header() + "Log:\n" + log_text())
+
+    def down(_win, touch):
+        if state["ev"]:
+            state["ev"].cancel()
+        state["pos"] = touch.pos
+        state["ev"] = Clock.schedule_once(fire, seconds)
+
+    def move(_win, touch):
+        p = state["pos"]
+        if p and abs(touch.pos[0] - p[0]) + abs(touch.pos[1] - p[1]) > 40 and state["ev"]:
+            state["ev"].cancel()
+            state["ev"] = None
+
+    def up(_win, touch):
+        if state["ev"]:
+            state["ev"].cancel()
+            state["ev"] = None
+
+    Window.bind(on_touch_down=down, on_touch_move=move, on_touch_up=up)
+
+
 def install():
     """Call as early as possible. Returns a report left by a previous hard
     crash, or None."""
@@ -75,7 +133,8 @@ def install_kivy_handler():
 
         def handle_exception(self, exc):
             report = _header() + "".join(
-                traceback.format_exception(type(exc), exc, exc.__traceback__))
+                traceback.format_exception(type(exc), exc, exc.__traceback__)) + (
+                "\n\nRecent log:\n" + "\n".join(list(LOG)[-80:]))
             print(report, file=sys.stderr)
             save_report(report)
             if self.shown == 0:
@@ -105,7 +164,7 @@ def share_natively(report):
         intent = Intent()
         intent.setAction(Intent.ACTION_SEND)
         intent.putExtra(Intent.EXTRA_TEXT, cast("java.lang.CharSequence",
-                                                String("Word Duel error report:\n\n" + report)))
+                                                String("Word Duel report:\n\n" + report)))
         intent.setType("text/plain")
         activity.startActivity(Intent.createChooser(intent, String("Send Word Duel error report")))
     except Exception as e:
