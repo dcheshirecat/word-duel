@@ -181,3 +181,15 @@ def test_round_replay_and_share():
     assert r.won and r.hints == {4: "p"}
     text = share_text("Word Duel", 7, r.history, r.won, 6, True, 1, "en")
     assert text.startswith("Word Duel #7 2/6* 💡") and text.endswith("🟩🟩🟩🟩🟩")
+
+
+def test_no_stencil_widgets():
+    """ScrollView/StencilView blank the whole screen on some Android GPUs
+    (seen on a Mali-G715): their stencil clipping masks every later draw."""
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[1]
+    for path in list((root / "wordduel").rglob("*.py")) + list((root / "wordduel").rglob("*.kv")):
+        code = "\n".join(line for line in path.read_text(encoding="utf-8").splitlines()
+                         if not line.strip().startswith("#"))
+        for name in ("ScrollView", "StencilView", "RecycleView"):
+            assert name not in code, f"{name} used in {path.name}"

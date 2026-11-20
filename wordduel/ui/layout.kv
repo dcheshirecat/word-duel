@@ -731,9 +731,11 @@
         TopBar:
             screen: root
             title: app.tr("rules", app.lang)
-        ScrollView:
-            do_scroll_x: False
-            bar_width: dp(4)
+        # No ScrollView here: Kivy clips scroll areas with the GPU stencil
+        # buffer, which leaves the whole screen blank on some Android (Mali)
+        # GPUs. The rules fit on a phone screen without scrolling.
+        AnchorLayout:
+            anchor_y: "top"
             Card:
                 size_hint_y: None
                 height: self.minimum_height

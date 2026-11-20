@@ -181,7 +181,6 @@ def show_overlay(title, report):
     from kivy.uix.boxlayout import BoxLayout
     from kivy.uix.button import Button
     from kivy.uix.label import Label
-    from kivy.uix.scrollview import ScrollView
 
     panel = BoxLayout(orientation="vertical", padding=dp(14), spacing=dp(8))
     with panel.canvas.before:
@@ -191,12 +190,12 @@ def show_overlay(title, report):
 
     panel.add_widget(Label(text=f"{title}\nPlease copy this and send it to the developer.",
                            size_hint_y=None, height=dp(56), halign="center"))
-    scroll = ScrollView()
-    msg = Label(text=report, size_hint_y=None, font_size=dp(11), halign="left", valign="top")
-    msg.bind(width=lambda lbl, w: setattr(lbl, "text_size", (w, None)),
-             texture_size=lambda lbl, s: setattr(lbl, "height", s[1]))
-    scroll.add_widget(msg)
-    panel.add_widget(scroll)
+    # No ScrollView (its stencil clipping blanks the screen on some GPUs):
+    # show the tail of the report; Copy still copies all of it.
+    tail = "\n".join(report.splitlines()[-45:])
+    msg = Label(text=tail, font_size=dp(10), halign="left", valign="top")
+    msg.bind(size=lambda lbl, s: setattr(lbl, "text_size", s))
+    panel.add_widget(msg)
 
     row = BoxLayout(size_hint_y=None, height=dp(54), spacing=dp(10))
     copy = Button(text="Copy error")
