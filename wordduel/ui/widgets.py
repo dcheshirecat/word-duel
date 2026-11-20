@@ -98,7 +98,9 @@ class Icon(Widget):
             PushMatrix()
             if self.mirror:
                 Scale(x=-1, y=1, z=1, origin=(cx, cy))
-            Color(rgba=self.color)
+            # Always opaque: wide translucent Lines use the stencil buffer
+            # (see theme.TILE_EDGE). Fade icons with widget opacity instead.
+            Color(rgba=list(self.color[:3]) + [1])
             getattr(self, "_" + self.name, self._missing)(cx, cy, s, w)
             PopMatrix()
 
@@ -399,7 +401,7 @@ class Tile(Widget):
             if face is None:
                 Color(rgba=[1, 1, 1, .18])
                 RoundedRectangle(pos=self.pos, size=self.size, radius=[r])
-                Color(rgba=[1, 1, 1, .55])
+                Color(rgba=theme.TILE_EDGE)
                 Line(rounded_rectangle=(self.x + 1, self.y + 1, w - 2, h - 2, r), width=dp(1.4))
             else:
                 Color(rgba=edge)

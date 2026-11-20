@@ -38,6 +38,9 @@ CARD = hx("#FFFFFF")
 CARD_SOFT = hx("#F3EEFF")
 KEY = hx("#FFFFFF")
 KEY_EDGE = hx("#C9BEF0")
+# Opaque on purpose: a wide Line with alpha < 1 makes Kivy use the GPU
+# stencil buffer, which blanks the screen on some Android (Mali) GPUs.
+TILE_EDGE = hx("#D8CBFF")
 
 # Mode button colors
 YELLOW = hx("#FFC93C")
