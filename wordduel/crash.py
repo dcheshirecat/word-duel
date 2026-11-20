@@ -78,6 +78,9 @@ def install_kivy_handler():
                 traceback.format_exception(type(exc), exc, exc.__traceback__))
             print(report, file=sys.stderr)
             save_report(report)
+            if self.shown == 0:
+                # Native Android share sheet: works even if Kivy can't draw.
+                share_natively(report)
             if self.shown < 3:       # don't bury the screen in overlays
                 self.shown += 1
                 try:
@@ -87,6 +90,26 @@ def install_kivy_handler():
             return ExceptionManager.PASS
 
     ExceptionManager.add_handler(ShowAndContinue())
+
+
+def share_natively(report):
+    """Open Android's share sheet with the report (no-op elsewhere)."""
+    from kivy.utils import platform as kivy_platform
+    if kivy_platform != "android":
+        return
+    try:
+        from jnius import autoclass, cast
+        Intent = autoclass("android.content.Intent")
+        String = autoclass("java.lang.String")
+        activity = autoclass("org.kivy.android.PythonActivity").mActivity
+        intent = Intent()
+        intent.setAction(Intent.ACTION_SEND)
+        intent.putExtra(Intent.EXTRA_TEXT, cast("java.lang.CharSequence",
+                                                String("Word Duel error report:\n\n" + report)))
+        intent.setType("text/plain")
+        activity.startActivity(Intent.createChooser(intent, String("Send Word Duel error report")))
+    except Exception as e:
+        print(f"Word Duel: could not open share sheet: {e}", file=sys.stderr)
 
 
 def show_overlay(title, report):

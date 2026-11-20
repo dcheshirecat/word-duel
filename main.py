@@ -37,6 +37,7 @@ if __name__ == "__main__":
         from kivy.clock import Clock
         from wordduel.ui.app import WordDuelApp
         if previous_crash:
+            crash.share_natively(previous_crash)
             Clock.schedule_once(lambda dt: crash.show_overlay(
                 "Word Duel closed unexpectedly last time", previous_crash), 1.5)
         WordDuelApp().run()
