@@ -107,6 +107,13 @@ def tap_digit(d):
     tap(next(k for k in pad.children if label_of(k) == d))
 
 
+NONSENSE = {"en": "qxzjv", "he": "ץץקקק"}
+
+
+def check(ok, message):
+    assert ok, message
+
+
 def expect(name):
     assert app.sm.current == name, f"expected {name}, on {app.sm.current}"
 
@@ -118,9 +125,21 @@ def script():
     yield .2, lambda: tap_text("rules")
     yield .4, lambda: tap_text("got_it")
     yield .4, lambda: expect("home")
-    # Free Play: type, wrong submit, real guess, hint, back
+    # Language switch by tapping the EN/עב pill
+    other = "he" if LANG == "en" else "en"
+    yield .3, lambda: tap(find(lambda w: isinstance(w, widgets.ChunkyButton)
+                               and label_of(w) == ("עב" if other == "he" else "EN")))
+    yield .5, lambda: check(app.lang == other, f"language after tap is {app.lang}")
+    yield .3, lambda: tap(find(lambda w: isinstance(w, widgets.ChunkyButton)
+                               and label_of(w) == ("עב" if LANG == "he" else "EN")))
+    yield .5, lambda: check(app.lang == LANG, f"language after tap back is {app.lang}")
+    # Free Play: nonsense word must be rejected
     yield .2, lambda: tap_text("solo")
     yield .5, lambda: expect("game")
+    yield from typing(NONSENSE[LANG])
+    yield .2, lambda: tap_special("enter")
+    yield .8, lambda: check(screen().round.row == 0, f"nonsense guess accepted (row={screen().round.row})")
+    yield from [(.15, lambda: tap_special("backspace"))] * 5
     yield from typing(w5[3][:2])
     yield .3, lambda: tap_special("enter")          # too short -> toast + shake
     yield .5, lambda: tap_special("backspace")
