@@ -1,0 +1,17 @@
+Word Duel | linux | Python 3.14.6 | Kivy 2.3.1
+
+Traceback (most recent call last):
+  File "kivy/_clock.pyx", line 649, in kivy._clock.CyClockBase._process_events
+  File "kivy/_clock.pyx", line 218, in kivy._clock.ClockEvent.tick
+  File "/tmp/claude-0/-home-user-word-duel/af7940e6-45ad-5897-a095-ea4f83ad9232/scratchpad/v314/lib/python3.14/site-packages/kivy/animation.py", line 364, in _update
+    setattr(widget, key, value)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "kivy/properties.pyx", line 520, in kivy.properties.Property.__set__
+  File "kivy/properties.pyx", line 567, in kivy.properties.Property.set
+  File "kivy/properties.pyx", line 606, in kivy.properties.Property._dispatch
+  File "kivy/_event.pyx", line 1307, in kivy._event.EventObservers.dispatch
+  File "kivy/_event.pyx", line 1213, in kivy._event.EventObservers._dispatch
+TypeError: ChunkyButton.on_press() takes 1 positional argument but 3 were given
+
+
+Recent log:
