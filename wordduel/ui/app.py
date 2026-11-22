@@ -22,6 +22,45 @@ from .widgets import Background, Confetti, Toast
 KV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "layout.kv")
 
 
+def read_insets():
+    """System bar / cutout insets as (left, top, right, bottom) in Kivy pixels.
+
+    Android 15 draws apps edge to edge, under the status bar and navigation
+    bar, so content has to keep clear of them itself.
+    WORDDUEL_FAKE_INSETS="l,t,r,b" simulates them on a desktop.
+    """
+    fake = os.environ.get("WORDDUEL_FAKE_INSETS")
+    if fake:
+        return tuple(int(v) for v in fake.split(","))
+    if platform != "android":
+        return (0, 0, 0, 0)
+    try:
+        from jnius import autoclass
+        activity = autoclass("org.kivy.android.PythonActivity").mActivity
+        view = activity.getWindow().getDecorView()
+        scale = Window.width / view.getWidth() if view.getWidth() else 1.0
+        win_insets = view.getRootWindowInsets()
+        if win_insets is not None:
+            if autoclass("android.os.Build$VERSION").SDK_INT >= 30:
+                Type = autoclass("android.view.WindowInsets$Type")
+                i = win_insets.getInsets(Type.systemBars() | Type.displayCutout())
+                raw = (i.left, i.top, i.right, i.bottom)
+            else:
+                raw = (win_insets.getSystemWindowInsetLeft(), win_insets.getSystemWindowInsetTop(),
+                       win_insets.getSystemWindowInsetRight(), win_insets.getSystemWindowInsetBottom())
+        else:
+            res = activity.getResources()
+
+            def dimen(name):
+                rid = res.getIdentifier(name, "dimen", "android")
+                return res.getDimensionPixelSize(rid) if rid else 0
+            raw = (0, dimen("status_bar_height"), 0, dimen("navigation_bar_height"))
+        return tuple(int(round(v * scale)) for v in raw)
+    except Exception as e:
+        Logger.warning(f"WordDuel: could not read insets: {e}")
+        return (0, 0, 0, 0)
+
+
 class WordDuelApp(App):
     title = "Word Duel"
     icon = os.path.join(theme.ASSETS, "icon.png")
@@ -43,16 +82,23 @@ class WordDuelApp(App):
         Builder.load_file(KV)
 
         root = FloatLayout()
-        root.add_widget(Background())
+        root.add_widget(Background())          # full screen, behind the system bars
+        # Everything interactive lives in the "safe" area, clear of the status
+        # bar / camera cutout at the top and the navigation bar at the bottom.
+        self.safe = FloatLayout(size_hint=(None, None))
+        root.add_widget(self.safe)
         # Instant screen switches: rules out transition rendering issues on phones.
-        self.sm = ScreenManager(transition=NoTransition())
+        self.sm = ScreenManager(transition=NoTransition(), pos_hint={"x": 0, "y": 0})
         for name, cls in screens.SCREENS.items():
             self.sm.add_widget(cls(name=name))
-        root.add_widget(self.sm)
+        self.safe.add_widget(self.sm)
         self.confetti = Confetti()
         root.add_widget(self.confetti)
         self.toaster = Toast()
-        root.add_widget(self.toaster)
+        self.safe.add_widget(self.toaster)
+        self.insets = (0, 0, 0, 0)             # left, top, right, bottom (pixels)
+        root.bind(pos=self._layout_safe, size=self._layout_safe)
+        self._update_insets()
 
         Window.clearcolor = theme.BG_TOP
         Logger.info(f"WordDuel: built, window {Window.size}, density {Metrics.density}")
@@ -133,7 +179,24 @@ class WordDuelApp(App):
         Clock.schedule_once(self._check_window_size, 0.2)
         Clock.schedule_once(self._check_window_size, 1.0)
 
+    # -- safe area (system bars / camera cutout)
+    def _layout_safe(self, *_):
+        root = self.root or self.safe.parent
+        if root is None:
+            return
+        left, top, right, bottom = self.insets
+        self.safe.pos = (root.x + left, root.y + bottom)
+        self.safe.size = (max(root.width - left - right, 1), max(root.height - top - bottom, 1))
+
+    def _update_insets(self):
+        insets = read_insets()
+        if insets != self.insets:
+            Logger.info(f"WordDuel: safe-area insets (l, t, r, b) = {insets}")
+            self.insets = insets
+            self._layout_safe()
+
     def _check_window_size(self, _dt=None):
+        self._update_insets()
         """Re-sync Kivy with the real drawing surface.
 
         Seen on a phone: after a while the surface grew but Kivy never got a
