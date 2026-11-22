@@ -96,6 +96,19 @@ def tap_special(icon):
         isinstance(c, widgets.Icon) and c.name == icon for c in w.children)))
 
 
+def typing_wrong(i):
+    """Steps typing the i-th valid word that is not the current secret."""
+    holder = {}
+
+    def pick():
+        secret = screen().round.secret
+        tried = {g for g, _ in screen().round.history}
+        holder["w"] = [w for w in words.answers(LANG, 5) if w != secret and w not in tried][i * 7]
+    yield .1, pick
+    for k in range(5):
+        yield .15, (lambda k=k: tap_key(holder["w"][k]))
+
+
 def typing(word):
     """Script steps that tap one key at a time."""
     for ch in word:
@@ -149,6 +162,16 @@ def script():
     yield 2.0, lambda: tap(find(lambda w: isinstance(w, widgets.ChunkyButton)
                                 and any(isinstance(c, widgets.Icon) and c.name == "bulb"
                                         for c in w.children)))
+    # Endless: 8 wrong guesses, still playing, board scrolled
+    yield .5, lambda: None
+    for i in range(8):
+        yield from typing_wrong(i)
+        yield .2, lambda: tap_special("enter")
+        yield 2.2, lambda: None
+    yield .2, lambda: check(screen().round.row >= 8 and not screen().round.done,
+                            f"endless free play stopped at row {screen().round.row}")
+    yield .1, lambda: check(screen().first == screen().round.row - 5,
+                            f"board did not scroll (first={screen().first})")
     yield .5, lambda: tap_icon("back")
     yield .4, lambda: expect("home")
     # Daily: win it

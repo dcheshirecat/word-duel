@@ -105,10 +105,12 @@ class DistChart(Widget):
     """Horizontal guess-distribution bars (single series, direct-labelled)."""
     dist = ListProperty([0] * MAX_ATTEMPTS)
     highlight = NumericProperty(0)
+    last_label = StringProperty(str(MAX_ATTEMPTS))   # "6+" for endless Free Play
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.bind(pos=self.draw, size=self.draw, dist=self.draw, highlight=self.draw)
+        self.bind(pos=self.draw, size=self.draw, dist=self.draw, highlight=self.draw,
+                  last_label=self.draw)
 
     def draw(self, *_):
         self.canvas.clear()
@@ -124,7 +126,8 @@ class DistChart(Widget):
         with self.canvas:
             for i, count in enumerate(self.dist):
                 y = self.y + self.height - (i + 1) * row_h + (row_h - bar_h) / 2
-                num = _text_texture(str(i + 1), dp(17), theme.INK, theme.FONT_BOLD)
+                label = self.last_label if i == n - 1 else str(i + 1)
+                num = _text_texture(label, dp(17), theme.INK, theme.FONT_BOLD)
                 w = max(track_w * count / top, dp(30))
                 if rtl:
                     lx = self.x + self.width - label_w / 2 - num.width / 2
@@ -241,7 +244,10 @@ class GameScreen(BaseScreen):
             self.subtitle = f"{T('score')}  {p1} - {p2}"
         if hard:
             self.subtitle += "  ·  " + T("hard_badge")
-        self.round = Round(secret, self.lang, hard=hard, max_hints=1 if mode == "daily" else 2)
+        # Free Play is endless: unlimited guesses until the word is found.
+        self.round = Round(secret, self.lang, hard=hard, max_hints=1 if mode == "daily" else 2,
+                           max_attempts=None if mode == "solo" else MAX_ATTEMPTS)
+        self.first = 0     # history index shown in the board's top row
         self.ids.board.reset(MAX_ATTEMPTS, self.round.length, self.lang == "he")
         self.ids.keyboard.language = self.lang
         self.ids.keyboard.set_states({})
@@ -250,7 +256,7 @@ class GameScreen(BaseScreen):
         if saved:
             self.round.replay(saved.get("guesses", []), saved.get("hints", {}))
             for r, (g, fb) in enumerate(self.round.history):
-                self.ids.board.set_row(r, g, fb)
+                self.ids.board.set_row(self.vrow(r), g, fb)
             self.ids.keyboard.set_states(letter_states(self.round.history))
             if self.round.done:
                 Clock.schedule_once(lambda dt: self._finish(record=False), 0.5)
@@ -281,18 +287,19 @@ class GameScreen(BaseScreen):
             app().toast(error_text(result[1:]))
             app().sfx("error")
             app().buzz(70)
-            self.ids.board.shake_row(self.round.row)
+            self.ids.board.shake_row(self.vrow(self.round.row))
             return
         _, guess, feedback = result
         row = self.round.row - 1
         self.busy = True
         self._save_daily()
-        self.ids.board.reveal_row(row, guess, feedback, on_done=lambda: self._after_reveal(row))
+        self.ids.board.reveal_row(self.vrow(row), guess, feedback,
+                                  on_done=lambda: self._after_reveal(row))
 
     def _after_reveal(self, row):
         self.ids.keyboard.set_states(letter_states(self.round.history))
         if self.round.won:
-            self.ids.board.celebrate_row(row)
+            self.ids.board.celebrate_row(self.vrow(row))
             app().sfx("win")
             app().buzz(120)
             app().confetti.burst()
@@ -305,9 +312,29 @@ class GameScreen(BaseScreen):
             self.busy = False
             self._refresh_typed()
 
+    # -- the board shows 6 rows; in endless Free Play older guesses scroll off
+    def vrow(self, index):
+        """Board row for a history index."""
+        return index - self.first
+
+    def _scroll_if_full(self):
+        rows = self.ids.board.rows
+        if self.round.done or self.vrow(self.round.row) < rows:
+            return
+        self.first = self.round.row - rows + 1
+        board = self.ids.board
+        for v in range(rows):
+            i = self.first + v
+            if i < len(self.round.history):
+                board.set_row(v, *self.round.history[i])
+            else:
+                board.show_typed(v, "")
+
     def _refresh_typed(self):
         if not self.round.done:
-            self.ids.board.show_typed(self.round.row, self.round.current, self.round.hints)
+            self._scroll_if_full()
+            self.ids.board.show_typed(self.vrow(self.round.row), self.round.current,
+                                      self.round.hints)
 
     def use_hint(self):
         if self.busy or self.panel_up:
@@ -339,7 +366,7 @@ class GameScreen(BaseScreen):
         a = app()
         r = self.round
         attempts = len(r.history)
-        self.r_title = T(f"win_{attempts}") if r.won else T("lose")
+        self.r_title = T(f"win_{min(attempts, MAX_ATTEMPTS)}") if r.won else T("lose")
         self.r_sub = T("the_word_was", word=r.secret.upper())
         self.r_extra = ""
         self.r_can_share = self.mode in ("daily", "solo", "challenge")
@@ -585,6 +612,7 @@ class StatsScreen(BaseScreen):
     best = StringProperty("0")
     dist = ListProperty([0] * MAX_ATTEMPTS)
     last = NumericProperty(0)
+    last_label = StringProperty(str(MAX_ATTEMPTS))
     empty = BooleanProperty(True)
 
     def on_pre_enter(self, *_):
@@ -602,7 +630,8 @@ class StatsScreen(BaseScreen):
         self.streak = str(a.stats.current_streak(self.mode, a.lang, today))
         self.best = str(s["best"])
         self.dist = list(s["dist"])
-        self.last = s.get("last") or 0
+        self.last = min(s.get("last") or 0, MAX_ATTEMPTS)
+        self.last_label = "6+" if self.mode == "solo" else str(MAX_ATTEMPTS)
         self.empty = s["played"] == 0
 
 
@@ -611,7 +640,26 @@ class SettingsScreen(BaseScreen):
 
 
 class RulesScreen(BaseScreen):
-    pass
+    """No scrolling (see layout.kv), so shrink the text until the card fits."""
+    fit = NumericProperty(1.0)
+
+    def on_kv_post(self, *_):
+        self._trigger_fit = Clock.create_trigger(self._fit, 0.05)
+        self.ids.card.bind(height=self._trigger_fit)
+        self.ids.area.bind(height=self._trigger_fit)
+        app().bind(lang=lambda *_: self._refit())
+
+    def on_pre_enter(self, *_):
+        self._refit()
+
+    def _refit(self):
+        self.fit = 1.0
+        self._trigger_fit()
+
+    def _fit(self, *_):
+        area, card = self.ids.area, self.ids.card
+        if area.height > 10 and card.height > area.height and self.fit > 0.6:
+            self.fit = max(0.6, self.fit * 0.94)
 
 
 SCREENS = {

@@ -7,6 +7,8 @@ from .rules import (MAX_ATTEMPTS, hard_mode_violation, is_win, normalize_word,
 
 
 class Round:
+    """max_attempts=None means unlimited guesses (Free Play)."""
+
     def __init__(self, secret, language, hard=False, max_hints=2,
                  max_attempts=MAX_ATTEMPTS, rng=None):
         self.secret = normalize_word(secret, language)
@@ -69,7 +71,7 @@ class Round:
         self.current = ""
         if is_win(feedback):
             self.won = self.done = True
-        elif len(self.history) >= self.max_attempts:
+        elif self.max_attempts and len(self.history) >= self.max_attempts:
             self.done = True
         return ("ok", guess, feedback)
 
@@ -107,7 +109,8 @@ class Round:
 
 def share_text(title, number, history, won, max_attempts, hard, hints, language):
     score = str(len(history)) if won else "X"
-    head = f"{title} #{number} {score}/{max_attempts}" if number else f"{title} {score}/{max_attempts}"
+    limit = max_attempts or "∞"
+    head = f"{title} #{number} {score}/{limit}" if number else f"{title} {score}/{limit}"
     if hard:
         head += "*"
     if hints:

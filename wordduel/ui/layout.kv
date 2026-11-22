@@ -649,6 +649,7 @@
                 DistChart:
                     dist: root.dist
                     highlight: root.last
+                    last_label: root.last_label
                     opacity: 0 if root.empty else 1
                     pos: self.parent.pos
                     size: self.parent.size
@@ -735,31 +736,38 @@
         # buffer, which leaves the whole screen blank on some Android (Mali)
         # GPUs. The rules fit on a phone screen without scrolling.
         AnchorLayout:
+            id: area
             anchor_y: "top"
             Card:
+                id: card
                 size_hint_y: None
                 height: self.minimum_height
-                spacing: dp(12)
+                spacing: dp(12) * root.fit
                 InkTxt:
                     rtext: app.tr("rules_text", app.lang)
+                    font_size: dp(16) * root.fit
                     align: "start"
                     wrap: True
                     size_hint_y: None
                     height: self.texture_size[1]
                 LegendRow:
+                    height: dp(52) * root.fit
                     state: "correct"
                     letter: "ש" if app.lang == "he" else "W"
                     text: app.tr("rule_correct", app.lang)
                 LegendRow:
+                    height: dp(52) * root.fit
                     state: "present"
                     letter: "ל" if app.lang == "he" else "O"
                     text: app.tr("rule_present", app.lang)
                 LegendRow:
+                    height: dp(52) * root.fit
                     state: "absent"
                     letter: "ם" if app.lang == "he" else "D"
                     text: app.tr("rule_absent", app.lang)
                 InkTxt:
                     rtext: app.tr("rules_more", app.lang)
+                    font_size: dp(16) * root.fit
                     align: "start"
                     wrap: True
                     size_hint_y: None

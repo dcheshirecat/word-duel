@@ -193,3 +193,21 @@ def test_no_stencil_widgets():
                          if not line.strip().startswith("#"))
         for name in ("ScrollView", "StencilView", "RecycleView"):
             assert name not in code, f"{name} used in {path.name}"
+
+
+def test_free_play_is_endless():
+    r = Round("crisp", "en", max_attempts=None)
+    for w in ["about", "other", "which", "their", "there", "would", "these", "thing"]:
+        r.current = w
+        assert r.submit()[0] == "ok"
+    assert not r.done and r.row == 8
+    r.current = "crisp"
+    assert r.submit()[0] == "ok" and r.won
+    text = share_text("Word Duel", None, r.history, r.won, None, False, 0, "en")
+    assert text.startswith("Word Duel 9/∞")
+
+
+def test_long_wins_count_in_last_bucket(tmp_path):
+    s = Stats(str(tmp_path))
+    st = s.record("solo", "en", True, 11)
+    assert st["dist"][-1] == 1 and sum(st["dist"]) == 1

@@ -94,7 +94,7 @@ STRINGS = {
         "vibration": "Vibration",
 
         "rules_text": (
-            "Guess the secret word in 6 tries.\n\n"
+            "Guess the secret word in 6 tries (Free Play: as many as you need).\n\n"
             "Each guess must be a real word. After each guess the tiles change "
             "color to show how close you were:"
         ),
@@ -202,7 +202,7 @@ STRINGS = {
         "vibration": "רטט",
 
         "rules_text": (
-            "נחשו את המילה הסודית ב־6 ניסיונות.\n\n"
+            "נחשו את המילה הסודית ב־6 ניסיונות (במשחק חופשי: כמה שצריך).\n\n"
             "כל ניחוש חייב להיות מילה אמיתית. אחרי כל ניחוש המשבצות "
             "משנות צבע ומראות כמה התקרבתם:"
         ),

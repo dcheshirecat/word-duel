@@ -76,7 +76,8 @@ class Stats(JsonStore):
             s["wins"] += 1
             s["streak"] += 1
             s["best"] = max(s["best"], s["streak"])
-            s["dist"][attempts - 1] += 1
+            # The last bucket also holds anything longer (Free Play is endless).
+            s["dist"][min(attempts, MAX_ATTEMPTS) - 1] += 1
             s["last"] = attempts
         else:
             s["streak"] = 0
