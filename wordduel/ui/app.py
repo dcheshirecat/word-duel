@@ -204,12 +204,14 @@ class WordDuelApp(App):
 
     def on_resume(self):
         Logger.info("WordDuel: on_resume")
-        self._restore_graphics()
+        # on_resume is called from Android's UI thread, where no GL context is
+        # current: do the GL work on the next frame, on Kivy's GL thread.
+        Clock.schedule_once(self._restore_graphics, 0)
         for t in (0.2, 1.0):
             Clock.schedule_once(self._check_window_size, t)
             Clock.schedule_once(lambda dt: self._update_insets(), t)
 
-    def _restore_graphics(self):
+    def _restore_graphics(self, _dt=None):
         """Rebuild GPU resources if Android dropped the GL context while paused.
 
         Kivy assumes the context survives a pause on Android and only redraws.
@@ -220,13 +222,26 @@ class WordDuelApp(App):
         platforms whose windows get recreated.
         """
         from kivy.graphics.context import get_context
-        from kivy.graphics.opengl import glIsTexture
+        from kivy.graphics.opengl import GL_VERSION, glGetString, glIsTexture
         from .widgets import _tex_cache
+        try:
+            version = glGetString(GL_VERSION)
+        except Exception as e:
+            version = f"error {e}"
+        if not version:
+            # No context on this thread yet: try again shortly.
+            tries = getattr(self, "_restore_tries", 0)
+            Logger.warning(f"WordDuel: no GL context yet after resume (try {tries})")
+            if tries < 20:
+                self._restore_tries = tries + 1
+                Clock.schedule_once(self._restore_graphics, 0.1)
+            return
+        self._restore_tries = 0
         probe = next(iter(_tex_cache.values()), None)
         alive = bool(probe is not None and glIsTexture(probe.id))
-        Logger.info(f"WordDuel: GL context after resume: "
-                    f"{'kept' if alive else 'lost (or unknown)'}; probe={probe is not None}")
-        if not alive:
+        Logger.info(f"WordDuel: GL context after resume: {'kept' if alive else 'lost'}; "
+                    f"probe={probe is not None}; version={version!r}")
+        if probe is not None and not alive:
             get_context().reload()
             Logger.info("WordDuel: reloaded all graphics")
         Window.update_viewport()
