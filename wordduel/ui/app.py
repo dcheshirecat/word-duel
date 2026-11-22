@@ -23,10 +23,11 @@ KV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "layout.kv")
 
 
 def read_insets():
-    """System bar / cutout insets as (left, top, right, bottom) in Kivy pixels.
+    """Parts of the system bars / camera cutout that overlap our window, as
+    (left, top, right, bottom) in Kivy pixels.
 
-    Android 15 draws apps edge to edge, under the status bar and navigation
-    bar, so content has to keep clear of them itself.
+    Works both when the app is drawn edge to edge (bars on top of us) and
+    when Android keeps the bars outside our window (then nothing overlaps).
     WORDDUEL_FAKE_INSETS="l,t,r,b" simulates them on a desktop.
     """
     fake = os.environ.get("WORDDUEL_FAKE_INSETS")
@@ -37,25 +38,27 @@ def read_insets():
     try:
         from jnius import autoclass
         activity = autoclass("org.kivy.android.PythonActivity").mActivity
-        view = activity.getWindow().getDecorView()
-        scale = Window.width / view.getWidth() if view.getWidth() else 1.0
-        win_insets = view.getRootWindowInsets()
-        if win_insets is not None:
-            if autoclass("android.os.Build$VERSION").SDK_INT >= 30:
-                Type = autoclass("android.view.WindowInsets$Type")
-                i = win_insets.getInsets(Type.systemBars() | Type.displayCutout())
-                raw = (i.left, i.top, i.right, i.bottom)
-            else:
-                raw = (win_insets.getSystemWindowInsetLeft(), win_insets.getSystemWindowInsetTop(),
-                       win_insets.getSystemWindowInsetRight(), win_insets.getSystemWindowInsetBottom())
+        decor = activity.getWindow().getDecorView()
+        content = activity.findViewById(autoclass("android.R$id").content)
+        win_insets = decor.getRootWindowInsets()
+        if win_insets is None or content is None or not content.getWidth():
+            return (0, 0, 0, 0)
+        if autoclass("android.os.Build$VERSION").SDK_INT >= 30:
+            Type = autoclass("android.view.WindowInsets$Type")
+            i = win_insets.getInsets(Type.systemBars() | Type.displayCutout())
+            bars = (i.left, i.top, i.right, i.bottom)
         else:
-            res = activity.getResources()
-
-            def dimen(name):
-                rid = res.getIdentifier(name, "dimen", "android")
-                return res.getDimensionPixelSize(rid) if rid else 0
-            raw = (0, dimen("status_bar_height"), 0, dimen("navigation_bar_height"))
-        return tuple(int(round(v * scale)) for v in raw)
+            bars = (win_insets.getSystemWindowInsetLeft(), win_insets.getSystemWindowInsetTop(),
+                    win_insets.getSystemWindowInsetRight(), win_insets.getSystemWindowInsetBottom())
+        # Where our content sits on the screen vs. where the bars are.
+        loc = [0, 0]
+        content.getLocationOnScreen(loc)
+        cx, cy, cw, ch = loc[0], loc[1], content.getWidth(), content.getHeight()
+        sw, sh = decor.getWidth(), decor.getHeight()
+        overlap = (max(0, bars[0] - cx), max(0, bars[1] - cy),
+                   max(0, (cx + cw) - (sw - bars[2])), max(0, (cy + ch) - (sh - bars[3])))
+        scale = Window.width / cw
+        return tuple(int(round(v * scale)) for v in overlap)
     except Exception as e:
         Logger.warning(f"WordDuel: could not read insets: {e}")
         return (0, 0, 0, 0)
@@ -107,6 +110,11 @@ class WordDuelApp(App):
         Clock.schedule_interval(self._check_window_size, 0.5)
         Clock.schedule_once(lambda dt: self._log_screen(self.sm, self.sm.current), 1)
         Window.bind(on_resize=self._on_window_resize)
+        for ev in ("on_show", "on_hide", "on_restore", "on_minimize", "on_maximize",
+                   "on_memorywarning"):
+            Window.bind(**{ev: lambda *_a, ev=ev: Logger.info(f"WordDuel: window {ev}")})
+        self._beats = 0
+        Clock.schedule_interval(self._heartbeat, 2)
         # Insets are read only when something may have changed them (not on
         # a timer): a few times during startup, on resize and on resume.
         for t in (0.5, 1.5, 3, 5):
@@ -162,6 +170,12 @@ class WordDuelApp(App):
             self._gl_errors += 1
             Logger.warning(f"WordDuel: GL error 0x{err:04x} on screen {self.sm.current}")
             err = glGetError()
+
+    def _heartbeat(self, _dt):
+        """Every 2 s: proves the frame loop is alive (shared in the log)."""
+        self._beats += 1
+        Logger.info(f"WordDuel: beat {self._beats} on {self.sm.current} "
+                    f"win={tuple(int(v) for v in Window.size)}")
 
     _timeline = None
 

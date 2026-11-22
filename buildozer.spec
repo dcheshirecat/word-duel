@@ -12,7 +12,10 @@ orientation = portrait
 fullscreen = 0
 icon.filename = %(source.dir)s/assets/icon.png
 android.permissions = VIBRATE
-android.api = 35
+# Target Android 14: Android 15's forced edge-to-edge and new app-switch
+# handling leave Kivy/SDL showing a blank screen after resume on some phones.
+# Fine for installing the APK directly (Play Store would require 35).
+android.api = 34
 android.minapi = 24
 android.ndk = 25b
 android.archs = arm64-v8a
