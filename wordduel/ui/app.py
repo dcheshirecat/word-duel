@@ -106,7 +106,11 @@ class WordDuelApp(App):
         Clock.schedule_interval(self._check_gl, 0)
         Clock.schedule_interval(self._check_window_size, 0.5)
         Clock.schedule_once(lambda dt: self._log_screen(self.sm, self.sm.current), 1)
-        Window.bind(on_resize=lambda _w, w, h: Logger.info(f"WordDuel: window resized {w}x{h}"))
+        Window.bind(on_resize=self._on_window_resize)
+        # Insets are read only when something may have changed them (not on
+        # a timer): a few times during startup, on resize and on resume.
+        for t in (0.5, 1.5, 3, 5):
+            Clock.schedule_once(lambda dt: self._update_insets(), t)
         Window.bind(on_keyboard=self._on_keyboard, on_textinput=self._on_textinput)
         return root
 
@@ -159,16 +163,40 @@ class WordDuelApp(App):
             Logger.warning(f"WordDuel: GL error 0x{err:04x} on screen {self.sm.current}")
             err = glGetError()
 
-    def _log_screen(self, _sm, name):
-        Logger.info(f"WordDuel: screen -> {name}")
+    _timeline = None
 
-        def detail(_dt):
+    def _log_screen(self, _sm, name):
+        """Log where everything is, once a second for 15 s after a screen change
+        (included in the press-and-hold log share)."""
+        Logger.info(f"WordDuel: screen -> {name}")
+        if self._timeline is not None:
+            self._timeline.cancel()
+        state = {"n": 0}
+
+        def ints(v):
+            return tuple(int(x) for x in v)
+
+        def tick(_dt):
+            state["n"] += 1
             scr = self.sm.current_screen
-            Logger.info(f"WordDuel: {scr.name} pos={tuple(map(int, scr.pos))} "
-                        f"size={tuple(map(int, scr.size))} opacity={scr.opacity} "
-                        f"in_sm={scr.parent is self.sm} sm={tuple(map(int, self.sm.size))} "
-                        f"window={Window.size}")
-        Clock.schedule_once(detail, 0.5)
+            try:
+                surface = ints(Window._win._get_gl_size())
+            except Exception:
+                surface = None
+            line = (f"WordDuel: t{state['n']} {scr.name} win={ints(Window.size)} surf={surface} "
+                    f"kbh={int(Window.keyboard_height)} sim={Window.softinput_mode!r} "
+                    f"root={ints(self.root.pos)}/{ints(self.root.size)} "
+                    f"safe={ints(self.safe.pos)}/{ints(self.safe.size)} "
+                    f"scr={ints(scr.pos)}/{ints(scr.size)} op={scr.opacity} "
+                    f"wkids={len(Window.children)}")
+            if scr.name == "rules" and "card" in scr.ids:
+                c = scr.ids.card
+                line += (f" card={ints(c.to_window(*c.pos))}/{ints(c.size)} "
+                         f"area_h={int(scr.ids.area.height)} fit={scr.fit:.2f}")
+            Logger.info(line)
+            if state["n"] >= 15:
+                return False
+        self._timeline = Clock.schedule_interval(tick, 1.0)
 
     def on_pause(self):
         Logger.info("WordDuel: on_pause")
@@ -176,8 +204,13 @@ class WordDuelApp(App):
 
     def on_resume(self):
         Logger.info("WordDuel: on_resume")
-        Clock.schedule_once(self._check_window_size, 0.2)
-        Clock.schedule_once(self._check_window_size, 1.0)
+        for t in (0.2, 1.0):
+            Clock.schedule_once(self._check_window_size, t)
+            Clock.schedule_once(lambda dt: self._update_insets(), t)
+
+    def _on_window_resize(self, _win, w, h):
+        Logger.info(f"WordDuel: window resized {w}x{h}")
+        Clock.schedule_once(lambda dt: self._update_insets(), 0.1)
 
     # -- safe area (system bars / camera cutout)
     def _layout_safe(self, *_):
@@ -196,7 +229,6 @@ class WordDuelApp(App):
             self._layout_safe()
 
     def _check_window_size(self, _dt=None):
-        self._update_insets()
         """Re-sync Kivy with the real drawing surface.
 
         Seen on a phone: after a while the surface grew but Kivy never got a

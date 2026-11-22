@@ -3,6 +3,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.clipboard import Clipboard
 from kivy.graphics import Color, Rectangle, RoundedRectangle
+from kivy.logger import Logger
 from kivy.metrics import dp
 from kivy.properties import BooleanProperty, ListProperty, NumericProperty, StringProperty
 from kivy.uix.screenmanager import Screen
@@ -660,6 +661,8 @@ class RulesScreen(BaseScreen):
         area, card = self.ids.area, self.ids.card
         if area.height > 10 and card.height > area.height and self.fit > 0.6:
             self.fit = max(0.6, self.fit * 0.94)
+            Logger.info(f"WordDuel: rules fit -> {self.fit:.2f} (card {int(card.height)}, "
+                        f"area {int(area.height)})")
 
 
 SCREENS = {
