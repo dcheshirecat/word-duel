@@ -204,9 +204,34 @@ class WordDuelApp(App):
 
     def on_resume(self):
         Logger.info("WordDuel: on_resume")
+        self._restore_graphics()
         for t in (0.2, 1.0):
             Clock.schedule_once(self._check_window_size, t)
             Clock.schedule_once(lambda dt: self._update_insets(), t)
+
+    def _restore_graphics(self):
+        """Rebuild GPU resources if Android dropped the GL context while paused.
+
+        Kivy assumes the context survives a pause on Android and only redraws.
+        Seen on a Mali-G715 phone: after a pause/resume everything except the
+        clear color vanished (layout and input still fine), i.e. the context
+        was lost. Probe a texture we created earlier; if the GPU no longer
+        knows it, reload every graphics object, like Kivy does on desktop
+        platforms whose windows get recreated.
+        """
+        from kivy.graphics.context import get_context
+        from kivy.graphics.opengl import glIsTexture
+        from .widgets import _tex_cache
+        probe = next(iter(_tex_cache.values()), None)
+        alive = bool(probe is not None and glIsTexture(probe.id))
+        Logger.info(f"WordDuel: GL context after resume: "
+                    f"{'kept' if alive else 'lost (or unknown)'}; probe={probe is not None}")
+        if not alive:
+            get_context().reload()
+            Logger.info("WordDuel: reloaded all graphics")
+        Window.update_viewport()
+        Window.canvas.ask_update()
+        Clock.schedule_once(lambda dt: Window.canvas.ask_update(), 0.1)
 
     def _on_window_resize(self, _win, w, h):
         Logger.info(f"WordDuel: window resized {w}x{h}")
